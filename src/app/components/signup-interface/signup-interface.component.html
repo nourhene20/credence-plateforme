@@ -1,0 +1,126 @@
+
+<div class="signup-container">
+  
+  <div class="bg-decoration">
+    <div class="bg-shape shape-1"></div>
+    <div class="bg-shape shape-2"></div>
+    <div class="bg-shape shape-3"></div>
+  </div>
+  
+  <div class="signup-card">
+    
+    <div class="signup-header">
+      <div class="logo">
+        <span class="logo-icon">🧠</span>
+        <span class="logo-text">CREDENCE</span>
+      </div>
+      <h1 class="title">Create Account</h1>
+      <p class="subtitle">Join the uncertainty analysis platform</p>
+    </div>
+
+    <div class="role-selector">
+      <div class="role-title">
+        <span>👥</span>
+        <span>Select your profile</span>
+      </div>
+      <div class="role-cards">
+        <div class="role-card" 
+             [class.selected]="selectedRole === 'researcher'"
+             (click)="selectRole('researcher')">
+          <div class="role-icon">🔬</div>
+          <div class="role-name">Researcher</div>
+          <div class="role-desc">Full access to analysis and data</div>
+          <div class="role-check" *ngIf="selectedRole === 'researcher'">✓</div>
+        </div>
+        <div class="role-card" 
+             [class.selected]="selectedRole === 'expert'"
+             (click)="selectRole('expert')">
+          <div class="role-icon">👁️</div>
+          <div class="role-name">Expert / Reviewer</div>
+          <div class="role-desc">Human validation and review</div>
+          <div class="role-check" *ngIf="selectedRole === 'expert'">✓</div>
+        </div>
+      </div>
+    </div>
+
+
+    <form [formGroup]="signupForm" (ngSubmit)="onSubmit()" class="signup-form">
+      
+      <div class="form-group">
+        <label><span class="label-icon">👤</span>Full Name</label>
+        <input type="text" formControlName="name" placeholder="John Doe"
+               [class.error]="signupForm.get('name')?.invalid && signupForm.get('name')?.touched">
+        <div class="error-message" *ngIf="signupForm.get('name')?.touched">{{ getErrorMessage('name') }}</div>
+      </div>
+
+      <div class="form-group">
+        <label><span class="label-icon">📧</span>Email</label>
+        <input type="email" formControlName="email" placeholder="your@email.com"
+               [class.error]="signupForm.get('email')?.invalid && signupForm.get('email')?.touched">
+        <div class="error-message" *ngIf="signupForm.get('email')?.touched">{{ getErrorMessage('email') }}</div>
+      </div>
+
+      <div class="form-group">
+        <label><span class="label-icon">🔒</span>Password</label>
+        <div class="password-wrapper">
+          <input [type]="showPassword ? 'text' : 'password'"
+                 formControlName="password" placeholder="••••••••"
+                 [class.error]="signupForm.get('password')?.invalid && signupForm.get('password')?.touched">
+          <button type="button" class="password-toggle" (click)="togglePassword()">
+            {{ showPassword ? '🙈' : '👁️' }}
+          </button>
+        </div>
+        <div class="error-message" *ngIf="signupForm.get('password')?.touched">{{ getErrorMessage('password') }}</div>
+      </div>
+
+      <div class="form-group">
+        <label><span class="label-icon">🔐</span>Confirm Password</label>
+        <div class="password-wrapper">
+          <input [type]="showConfirmPassword ? 'text' : 'password'"
+                 formControlName="confirmPassword" placeholder="••••••••"
+                 [class.error]="signupForm.hasError('mismatch') && signupForm.get('confirmPassword')?.touched">
+          <button type="button" class="password-toggle" (click)="toggleConfirmPassword()">
+            {{ showConfirmPassword ? '🙈' : '👁️' }}
+          </button>
+        </div>
+        <div class="error-message" *ngIf="signupForm.get('confirmPassword')?.touched && signupForm.hasError('mismatch')">
+          Passwords do not match
+        </div>
+      </div>
+
+      <div class="form-group checkbox-group">
+        <label class="checkbox-label">
+          <input type="checkbox" formControlName="acceptTerms">
+          <span class="checkmark"></span>
+          I accept the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>
+        </label>
+        <div class="error-message" *ngIf="signupForm.get('acceptTerms')?.touched && signupForm.get('acceptTerms')?.invalid">
+          You must accept the terms
+        </div>
+      </div>
+
+      <button type="submit" class="signup-btn" [disabled]="isLoading">
+        <span *ngIf="!isLoading">📝 Create Account</span>
+        <span *ngIf="isLoading" class="spinner"></span>
+      </button>
+
+      <div class="divider"><span>or</span></div>
+
+      <button type="button" class="google-btn" (click)="goToLogin()" [disabled]="isLoading">
+        <span>G</span> Sign up with Google
+      </button>
+
+    </form>
+    <div class="login-link">
+      <p>Already have an account? 
+        <a href="javascript:void(0)" (click)="goToLogin()">Sign in</a>
+      </p>
+    </div>
+
+    <div class="signup-footer">
+      <p>🔬 Uncertainty Analysis Platform</p>
+      <p class="credits">CREDENCE - Credal Concept Bottleneck</p>
+    </div>
+
+  </div>
+</div>
