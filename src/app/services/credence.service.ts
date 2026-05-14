@@ -1,3 +1,4 @@
+// credence.service.ts
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
@@ -16,6 +17,7 @@ export interface PredictionResult {
   };
   concepts: Record<string, number>;
   concept_uncertainties: Record<string, number>;
+  heads_predictions?: Record<string, Record<string, number>>; // NOUVEAU
 }
 
 @Injectable({ providedIn: 'root' })

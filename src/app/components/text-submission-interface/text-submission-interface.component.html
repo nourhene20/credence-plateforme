@@ -1,15 +1,15 @@
 <div class="research-container">
   <div class="header">
- <div class="login-header">
-      <div class="logo">
-        <span class="logo-icon">🧠</span>
-        <span class="logo-text">CREDENCE</span>
-      </div>
-      <p class="subtitle">Decompose epistemic and aleatoric uncertainty</p>
+    <div class="logo">
+      <span class="logo-icon">🧠</span>
+      <span class="logo-text">CREDENCE</span>
     </div>
-    
+    <p class="subtitle">Decompose epistemic and aleatoric uncertainty</p>
   </div>
+
   <div class="main-card" [class.loading]="isLoading">
+
+    <!-- Mode Toggle -->
     <div class="mode-toggle">
       <button class="mode-btn" [class.active]="mode === 'single'" (click)="setMode('single')">
         📝 Single Text
@@ -18,206 +18,407 @@
         📊 Batch txt
       </button>
     </div>
+
+    <!-- Input Area -Mode Single -->
     <div class="input-area" *ngIf="mode === 'single'">
-      <textarea
-        class="main-textarea"
-        placeholder="Enter your text here for analysis..."
-        [(ngModel)]="inputText"
-        (input)="onInput()"
-        maxlength="512"
-        rows="5"
-      ></textarea>
-      
+      <textarea class="main-textarea" placeholder="Enter your text here for analysis..." [(ngModel)]="inputText"
+        (input)="onInput()" maxlength="512" rows="5"></textarea>
+
       <div class="input-footer">
         <div class="char-count" [class.warning]="charCount > 400">
           {{ charCount }} / 512 characters
         </div>
       </div>
     </div>
+
+    <!-- Input Area -Mode Batch -->
     <div class="input-area" *ngIf="mode === 'batch'">
-      <div 
-        class="drop-zone"
-        [class.drag-over]="isDragging"
-        (dragover)="onDragOver($event)"
-        (dragleave)="onDragLeave()"
-        (drop)="onDrop($event)"
-        (click)="fileInput.click()"
-      >
-        <input #fileInput type="file" accept=".csv" style="display:none" (change)="onFileSelected($event)">
-        
+      <div class="drop-zone" [class.drag-over]="isDragging" (dragover)="onDragOver($event)" (dragleave)="onDragLeave()"
+        (drop)="onDrop($event)" (click)="fileInput.click()">
+        <input #fileInput type="file" accept=".txt" style="display:none" (change)="onFileSelected($event)">
+
         <div class="drop-icon" *ngIf="!selectedFile">📁</div>
         <div class="drop-icon" *ngIf="selectedFile">✅</div>
-        
-        <p class="drop-title" *ngIf="!selectedFile">Drop your CSV file here or click to browse</p>
+
+        <p class="drop-title" *ngIf="!selectedFile">Drop your TXT file here or click to browse</p>
         <p class="drop-title success" *ngIf="selectedFile">{{ selectedFile.name }}</p>
-        <p class="drop-hint">CSV must contain a <code>text</code> column · Max 500 rows</p>
+        <p class="drop-hint">TXT must contain a <code>text</code> column · Max 500 rows</p>
       </div>
     </div>
-    <div class="thresholds">
-      <div class="threshold-header">
-        <span>🎯 Routing Thresholds</span>
-        <button class="reset-btn" (click)="resetThresholds()">Reset</button>
+
+    <!-- CONFIGURATION PANEL - MODÈLE & DATASET Settings-->
+    <div class="config-panel">
+      <div class="config-header">
+        <span class="config-icon">⚙️</span>
+        <span class="config-title">Model Configuration</span>
+        <span class="config-hint">Select model type, architecture and dataset</span>
       </div>
-      
-      <div class="threshold-sliders">
-        <div class="slider-card">
-          <div class="slider-header">
-            <div class="slider-title">
-              <span class="slider-icon">📊</span>
-              <span class="slider-name">Epistemic (EU)</span>
+
+      <!-- Model Type Selection -->
+      <div class="config-row">
+        <div class="config-item model-type-item">
+          <div class="item-label">
+            <span class="label-icon">🏗️</span>
+            <span>Model Type</span>
+          </div>
+          <div class="model-type-toggle">
+            <button class="type-btn" [class.active]="modelType === 'encoder'" (click)="setModelType('encoder')">
+              <span class="type-icon">📦</span>
+              <span class="type-name">Encoder</span>
+              <span class="type-desc">BERT / RoBERTa / ModernBERT</span>
+            </button>
+            <button class="type-btn" [class.active]="modelType === 'llm'" (click)="setModelType('llm')">
+              <span class="type-icon">🤖</span>
+              <span class="type-name">LLM</span>
+              <span class="type-desc">Llama / Qwen / Gemma / Phi</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Model Architecture Selection -->
+      <div class="config-row">
+        <div class="config-item model-item">
+          <div class="item-label">
+            <span class="label-icon">🤖</span>
+            <span>Model Architecture</span>
+          </div>
+          <div class="item-control">
+            <select class="model-select" [(ngModel)]="selectedModel" (change)="onModelChange()">
+              <option *ngFor="let model of filteredModels" [value]="model.key">
+                {{ model.info.name }}
+              </option>
+            </select>
+            <button class="info-chip" (click)="toggleModelDetails()" [class.active]="showModelDetails">
+              <span>ℹ️</span>
+              <span class="chip-text">{{ showModelDetails ? 'Hide' : 'Info' }}</span>
+            </button>
+          </div>
+          <div class="item-mini-info" *ngIf="currentModelInfo">
+            <span class="mini-badge">{{ currentModelInfo.params }}</span>
+            <span class="mini-badge">{{ currentModelInfo.speed }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Model Details -->
+      <div class="details-expand" *ngIf="showModelDetails && currentModelInfo">
+        <div class="details-card model-card">
+          <div class="details-icon">{{ getModelIcon(selectedModel) }}</div>
+          <div class="details-content">
+            <div class="details-title">{{ currentModelInfo.name }}</div>
+            <p class="details-description">{{ currentModelInfo.description }}</p>
+            <div class="details-meta">
+              <span class="meta-tag">📊 {{ currentModelInfo.params }}</span>
+              <span class="meta-tag">⚡ {{ currentModelInfo.speed }}</span>
             </div>
-            <div class="slider-value-container">
-              <span class="slider-value" [style.color]="getEpiColor()">{{ thresholdEpi | number:'1.4-6' }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dataset Selection -->
+      <div class="config-row">
+        <div class="config-item dataset-item">
+          <div class="item-label">
+            <span class="label-icon">📚</span>
+            <span>Dataset</span>
+          </div>
+
+          <div class="task-filters">
+            <button *ngFor="let task of tasksList" class="task-filter" [class.active]="selectedTask === task.key"
+              (click)="filterDatasetsByTask(task.key)">
+              {{ task.info.icon }} {{ task.info.name }}
+            </button>
+            <button class="task-filter reset" [class.active]="selectedTask === 'all'" (click)="resetFilter()">
+              🗂️ All
+            </button>
+          </div>
+
+          <div class="item-control">
+            <select class="dataset-select" [(ngModel)]="selectedDataset" (change)="onDatasetChange()">
+              <optgroup *ngFor="let group of datasetGroups" [label]="group.label">
+                <option *ngFor="let dataset of group.datasets" [value]="dataset.key">
+                  {{ dataset.info.name }}
+                </option>
+              </optgroup>
+            </select>
+            <button class="info-chip" (click)="toggleDatasetDetails()" [class.active]="showDatasetDetails">
+              <span>ℹ️</span>
+              <span class="chip-text">{{ showDatasetDetails ? 'Hide' : 'Info' }}</span>
+            </button>
+          </div>
+
+          <div class="item-mini-info" *ngIf="currentDatasetInfo">
+            <span class="mini-badge">{{ currentDatasetInfo.num_classes }} classes</span>
+            <span class="mini-badge">{{ currentDatasetInfo.task }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dataset Details -->
+      <div class="details-expand" *ngIf="showDatasetDetails && currentDatasetInfo">
+        <div class="details-card dataset-card">
+          <div class="details-icon">{{ currentDatasetInfo.icon || '📊' }}</div>
+          <div class="details-content">
+            <div class="details-title">{{ currentDatasetInfo.name }}</div>
+            <p class="details-description">{{ currentDatasetInfo.description }}</p>
+            <div class="details-stats-grid">
+              <div class="stat">
+                <span class="stat-label">Task</span>
+                <span class="stat-value">{{ currentDatasetInfo.task }}</span>
+              </div>
+              <div class="stat">
+                <span class="stat-label">Classes</span>
+                <span class="stat-value">{{ currentDatasetInfo.num_classes }}</span>
+              </div>
+
             </div>
           </div>
-          <input 
-            type="range" 
-            min="0" max="1" step="0.0001"
-            [(ngModel)]="thresholdEpi"
-            class="range-input epi-range"
-          >
-          <div class="slider-labels">
-            <span>Low uncertainty</span>
-            <span>High uncertainty</span>
-          </div>
         </div>
-        <div class="slider-card">
-          <div class="slider-header">
-            <div class="slider-title">
-              <span class="slider-icon">🎲</span>
-              <span class="slider-name">Aleatoric (AU)</span>
+      </div>
+
+      <!-- THRESHOLDS - Routing Decision Thresholds -->
+      <div class="thresholds">
+        <div class="threshold-header">
+          <span>🎯 Routing Thresholds</span>
+          <button class="reset-btn" (click)="resetThresholds()">Reset</button>
+        </div>
+
+        <div class="threshold-sliders">
+          <!-- Epistemic Uncertainty Slider -->
+          <div class="slider-card">
+            <div class="slider-header">
+              <div class="slider-title">
+                <span class="slider-icon">📊</span>
+                <span class="slider-name">Epistemic (EU)</span>
+              </div>
+              <div class="slider-value-container">
+                <span class="slider-value" [style.color]="getEpiColor()">{{ thresholdEpi | number:'1.4-6' }}</span>
+              </div>
             </div>
-            <div class="slider-value-container">
-              <span class="slider-value" [style.color]="getAleColor()">{{ thresholdAle | number:'1.2-4' }}</span>
+            <input type="range" min="0" max="0.012" step="0.0001" [(ngModel)]="thresholdEpi"
+              (input)="onThresholdChange()" class="range-input epi-range">
+            <div class="slider-labels">
+              <span>Low uncertainty</span>
+              <span>High uncertainty</span>
             </div>
           </div>
-          <input 
-            type="range" 
-            min="0" max="1" step="0.01"
-            [(ngModel)]="thresholdAle"
-            class="range-input ale-range"
-          >
-          <div class="slider-labels">
-            <span>Low ambiguity</span>
-            <span>High ambiguity</span>
+
+          <div class="slider-card">
+            <!-- Aleatoric Uncertainty Slider -->
+            <div class="slider-header">
+              <div class="slider-title">
+                <span class="slider-icon">🎲</span>
+                <span class="slider-name">Aleatoric (AU)</span>
+              </div>
+              <div class="slider-value-container">
+                <span class="slider-value" [style.color]="getAleColor()">{{ thresholdAle | number:'1.2-4' }}</span>
+              </div>
+            </div>
+            <input type="range" min="0" max="1" step="0.01" [(ngModel)]="thresholdAle" (input)="onThresholdChange()"
+              class="range-input ale-range">
+            <div class="slider-labels">
+              <span>Low ambiguity</span>
+              <span>High ambiguity</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Analyze Button -->
+      <div class="action">
+        <button class="analyze-btn" [disabled]="!canSubmit()" (click)="onSubmit()">
+          <span *ngIf="!isLoading">🔍 Analyze Text</span>
+          <span *ngIf="isLoading" class="spinner"></span>
+        </button>
+      </div>
+
+      <!-- RESULTS SECTION - Analysis Results -->
+      <div class="results" *ngIf="result">
+        <div class="prediction-card">
+          <div class="prediction-badge" [class.positive]="result.prediction === 'POSITIF'"
+            [class.negative]="result.prediction === 'NEGATIF'">
+            {{ result.prediction }}
+          </div>
+          <div class="confidence">
+            Confidence: <strong>{{ (result.confidence * 100) | number:'1.0-0' }}%</strong>
           </div>
         </div>
 
+        <div class="routing-card" [style.background]="getRoutingBgColor()" [style.borderLeftColor]="getRoutingColor()">
+          <div class="routing-header">
+            <span class="routing-icon">
+              <span *ngIf="routingDecision === 'TRUST'">✅</span>
+              <span *ngIf="routingDecision === 'DATA'">📈</span>
+              <span *ngIf="routingDecision === 'REVIEW'">👁️</span>
+              <span *ngIf="routingDecision === 'ABSTAIN'">⚠️</span>
+            </span>
+            <span class="routing-title">Routing Decision</span>
+          </div>
+
+          <div class="routing-value" [style.color]="getRoutingColor()">
+            {{ routingDecision }}
+          </div>
+
+          <div class="routing-matrix">
+            <div class="matrix-row">
+              <div class="matrix-cell label"></div>
+              <div class="matrix-cell header">EU Status</div>
+              <div class="matrix-cell header">AU Status</div>
+            </div>
+            <div class="matrix-row" [class.active]="routingDecision === 'TRUST'">
+              <div class="matrix-cell label">TRUST</div>
+              <div class="matrix-cell">LOW</div>
+              <div class="matrix-cell">LOW</div>
+            </div>
+            <div class="matrix-row" [class.active]="routingDecision === 'DATA'">
+              <div class="matrix-cell label">DATA</div>
+              <div class="matrix-cell">HIGH</div>
+              <div class="matrix-cell">LOW</div>
+            </div>
+            <div class="matrix-row" [class.active]="routingDecision === 'REVIEW'">
+              <div class="matrix-cell label">REVIEW</div>
+              <div class="matrix-cell">LOW</div>
+              <div class="matrix-cell">HIGH</div>
+            </div>
+            <div class="matrix-row" [class.active]="routingDecision === 'ABSTAIN'">
+              <div class="matrix-cell label">ABSTAIN</div>
+              <div class="matrix-cell">HIGH</div>
+              <div class="matrix-cell">HIGH</div>
+            </div>
+          </div>
+
+          <div class="routing-comparison">
+            <div class="comparison-item">
+              <span class="cmp-label">EU:</span>
+              <span class="cmp-value">{{ result.epistemic | number:'1.6-6' }}</span>
+              <span class="cmp-arrow">{{ result.epistemic >= thresholdEpi ? '≥' : '<' }}</span>
+                  <span class="cmp-threshold">{{ thresholdEpi | number:'1.6-6' }}</span>
+                  <span class="cmp-status" [class.high]="epiStatus === 'HIGH'">{{ epiStatus }}</span>
+            </div>
+            <div class="comparison-item">
+              <span class="cmp-label">AU:</span>
+              <span class="cmp-value">{{ (result.aleatoric || 0) | number:'1.6-6' }}</span>
+              <span class="cmp-arrow">{{ (result.aleatoric || 0) >= thresholdAle ? '≥' : '<' }}</span>
+                  <span class="cmp-threshold">{{ thresholdAle | number:'1.6-6' }}</span>
+                  <span class="cmp-status" [class.high]="aleStatus === 'HIGH'">{{ aleStatus }}</span>
+            </div>
+          </div>
+
+          <div class="routing-description">
+            <span *ngIf="routingDecision === 'TRUST'">✅ Model confident, input clear</span>
+            <span *ngIf="routingDecision === 'DATA'">📊 Model confused, but input is clear</span>
+            <span *ngIf="routingDecision === 'REVIEW'">👁️ Model confident, but humans may disagree</span>
+            <span *ngIf="routingDecision === 'ABSTAIN'">⚠️ Model confused, input unclear</span>
+          </div>
+        </div>
+
+        <!-- Scatter Plot Section -->
+        <div class="scatter-section">
+          <div class="section-header">
+            <h3>📊 Uncertainty Decomposition</h3>
+            <p class="section-description">
+              Epistemic (EU) vs Aleatoric (AU) uncertainty - Colored points by routing decision
+            </p>
+          </div>
+
+          <div class="scatter-container">
+            <canvas id="scatterChart" width="800" height="500"></canvas>
+          </div>
+
+          <div class="scatter-legend">
+            <div class="legend-item">
+              <div class="legend-color trust"></div>
+              <span>TRUST <small>(Low EU, Low AU)</small></span>
+              <span class="count">{{ routingCounts.TRUST }}</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-color data"></div>
+              <span>DATA <small>(High EU, Low AU)</small></span>
+              <span class="count">{{ routingCounts.DATA }}</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-color review"></div>
+              <span>REVIEW <small>(Low EU, High AU)</small></span>
+              <span class="count">{{ routingCounts.REVIEW }}</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-color abstain"></div>
+              <span>ABSTAIN <small>(High EU, High AU)</small></span>
+              <span class="count">{{ routingCounts.ABSTAIN }}</span>
+            </div>
+          </div>
+
+          <div class="scatter-stats" *ngIf="scatterPoints.length > 0">
+            <div class="stat-card">
+              <span class="stat-label">Total points</span>
+              <span class="stat-value">{{ scatterPoints.length }}</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">TRUST rate</span>
+              <span class="stat-value">{{ getRoutingPercentage('TRUST') }}%</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">Need review</span>
+              <span class="stat-value">{{ getRoutingPercentage('REVIEW') + getRoutingPercentage('ABSTAIN') }}%</span>
+            </div>
+          </div>
+
+          <div class="scatter-hint">
+            💡 Click on "Analyze Text" to add points. Adjust the thresholds to see routing decisions recalculate.
+          </div>
+        </div>
+
+        <!-- Concepts Analysis -->
+        <div class="concepts">
+          <div class="section-title">📋 Concept Analysis</div>
+          <div class="concept-list">
+            <div *ngFor="let item of result.concepts | keyvalue" class="concept">
+              <div class="concept-name">{{ item.key }}</div>
+              <div class="concept-bar-container">
+                <div class="concept-bar" [style.width.%]="item.value * 100"></div>
+              </div>
+              <div class="concept-values">
+                <span class="concept-value">{{ (item.value) | number:'1.2-2' }}</span>
+                <span class="concept-epi">EU: {{ getUncertainty(item.key) | number:'1.4-4' }}</span>
+                <span class="concept-ale" [style.color]="getAleatoricColor(item.key)">
+                  AU: {{ (getAleatoricByConcept(item.key) ) | number:'1.2-4' }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Histogram -->
+        <div class="histogram-section">
+          <div class="section-title">📊 EU & AU per Concept</div>
+          <div class="histogram-container">
+            <canvas id="conceptHistogram" width="800" height="400"></canvas>
+          </div>
+        </div>
+
+        <!-- EU vs Accuracy Curve -->
+        <div class="eu-accuracy-section">
+          <div class="section-title">📉 EU vs Accuracy Relationship</div>
+          <div class="curve-container">
+            <canvas id="euAccuracyChart" width="800" height="420"></canvas>
+          </div>
+        </div>
+        <!-- Heads per Concept Chart -->
+        <div class="heads-section">
+          <div class="section-title">📈 Per-Head Concept Predictions</div>
+          <p class="section-description">
+            Probability predicted by each head for each concept
+          </p>
+          <div class="curve-container">
+            <canvas id="headsPerConceptChart" width="900" height="520"></canvas>
+          </div>
+        </div>
+        <div class="error" *ngIf="errorMessage">
+          <span>⚠️</span> {{ errorMessage }}
+        </div>
+      </div>
+      <div class="error" *ngIf="errorMessage && !result">
+        <span>⚠️</span> {{ errorMessage }}
       </div>
     </div>
-
-    <div class="action">
-      <button class="analyze-btn" [disabled]="!canSubmit()" (click)="onSubmit()">
-        <span *ngIf="!isLoading">🔍 Analyze Text</span>
-        <span *ngIf="isLoading" class="spinner"></span>
-      </button>
-    </div>
-    <div class="results" *ngIf="result">
-      
-      <div class="prediction-card">
-        <div class="prediction-badge" [class.positive]="result.prediction === 'POSITIF'"
-                                       [class.negative]="result.prediction === 'NEGATIF'">
-          {{ result.prediction }}
-        </div>
-        <div class="confidence">
-          Confidence: <strong>{{ (result.confidence * 100) | number:'1.0-0' }}%</strong>
-        </div>
-      </div>
-
-      <div class="routing-card" [style.background]="getRoutingBgColor()" [style.borderLeftColor]="getRoutingColor()">
-        
-        <div class="routing-header">
-          <span class="routing-icon">
-            <span *ngIf="routingDecision === 'TRUST'">✅</span>
-            <span *ngIf="routingDecision === 'DATA'">📈</span>
-            <span *ngIf="routingDecision === 'REVIEW'">👁️</span>
-            <span *ngIf="routingDecision === 'ABSTAIN'">⚠️</span>
-          </span>
-          <span class="routing-title">Routing Decision</span>
-        </div>
-        
-        <div class="routing-value" [style.color]="getRoutingColor()">
-          {{ routingDecision }}
-        </div>
-
-        <div class="routing-matrix">
-          <div class="matrix-row">
-            <div class="matrix-cell label"></div>
-            <div class="matrix-cell header">EU Status</div>
-            <div class="matrix-cell header">AU Status</div>
-          </div>
-          <div class="matrix-row" [class.active]="routingDecision === 'TRUST'">
-            <div class="matrix-cell label">TRUST</div>
-            <div class="matrix-cell">LOW</div>
-            <div class="matrix-cell">LOW</div>
-          </div>
-          <div class="matrix-row" [class.active]="routingDecision === 'DATA'">
-            <div class="matrix-cell label">DATA</div>
-            <div class="matrix-cell">HIGH</div>
-            <div class="matrix-cell">LOW</div>
-          </div>
-          <div class="matrix-row" [class.active]="routingDecision === 'REVIEW'">
-            <div class="matrix-cell label">REVIEW</div>
-            <div class="matrix-cell">LOW</div>
-            <div class="matrix-cell">HIGH</div>
-          </div>
-          <div class="matrix-row" [class.active]="routingDecision === 'ABSTAIN'">
-            <div class="matrix-cell label">ABSTAIN</div>
-            <div class="matrix-cell">HIGH</div>
-            <div class="matrix-cell">HIGH</div>
-          </div>
-        </div>
-
-        <div class="routing-comparison">
-          <div class="comparison-item">
-            <span class="cmp-label">EU:</span>
-            <span class="cmp-value">{{ result.epistemic | number:'1.6-6' }}</span>
-            <span class="cmp-arrow">{{ result.epistemic >= thresholdEpi ? '≥' : '<' }}</span>
-            <span class="cmp-threshold">{{ thresholdEpi | number:'1.6-6' }}</span>
-            <span class="cmp-status" [class.high]="epiStatus === 'HIGH'">{{ epiStatus }}</span>
-          </div>
-          <div class="comparison-item">
-            <span class="cmp-label">AU:</span>
-            <span class="cmp-value">{{ (result.aleatoric || 0) | number:'1.6-6' }}</span>
-            <span class="cmp-arrow">{{ (result.aleatoric || 0) >= thresholdAle ? '≥' : '<' }}</span>
-            <span class="cmp-threshold">{{ thresholdAle | number:'1.6-6' }}</span>
-            <span class="cmp-status" [class.high]="aleStatus === 'HIGH'">{{ aleStatus }}</span>
-          </div>
-        </div>
-        
-        <div class="routing-description">
-          <span *ngIf="routingDecision === 'TRUST'">✅ Model confident, input clear </span>
-          <span *ngIf="routingDecision === 'DATA'">📊 Model confused, but input is clear</span>
-          <span *ngIf="routingDecision === 'REVIEW'">👁️ Model confident, but humans may disagree</span>
-          <span *ngIf="routingDecision === 'ABSTAIN'">⚠️  Model confused, input unclear</span>
-        </div>
-      </div>
-<div class="concepts">
-  <div class="section-title">📋 Concept Analysis</div>
-  <div class="concept-list">
-    <div *ngFor="let item of result.concepts | keyvalue" class="concept">
-      <div class="concept-name">{{ item.key }}</div>
-      <div class="concept-bar-container">
-        <!-- Concept Probability Bar (Violet) -->
-        <div class="concept-bar" [style.width.%]="item.value * 100"></div>
-      </div>
-      <div class="concept-values">
-        <span class="concept-value">{{ (item.value) | number:'1.2-2' }}</span>
-        <span class="concept-epi">EU: {{ getUncertainty(item.key) | number:'1.4-4' }}</span>
-        <span class="concept-ale" [style.color]="getAleatoricColor(item.key)">
-          AU: {{ (getAleatoricByConcept(item.key) ) | number:'1.2-4' }}
-        </span>
-      </div>
-    </div>
-  </div>
-  <div class="concept-legend">
-    <span><span class="legend-bar concept"></span> Concept probability</span>
-  </div>
-</div>
-
-    <div class="error" *ngIf="errorMessage">
-      <span>⚠️</span> {{ errorMessage }}
-    </div>
-
-  </div>
-</div>
