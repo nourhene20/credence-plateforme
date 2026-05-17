@@ -1,0 +1,6 @@
+fastapi
+uvicorn
+torch
+transformers
+huggingface_hub
+numpy
