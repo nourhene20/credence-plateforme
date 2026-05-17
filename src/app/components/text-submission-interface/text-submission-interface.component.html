@@ -41,7 +41,7 @@
         <div class="drop-icon" *ngIf="selectedFile">✅</div>
 
         <p class="drop-title" *ngIf="!selectedFile">Drop your TXT file here or click to browse</p>
-        <p class="drop-title success" *ngIf="selectedFile">{{ selectedFile.name }}</p>
+        <p class="drop-title success" *ngIf="selectedFile">{{ selectedFile?.name }}</p>
         <p class="drop-hint">TXT must contain a <code>text</code> column · Max 500 rows</p>
       </div>
     </div>
@@ -95,7 +95,7 @@
             </button>
           </div>
           <div class="item-mini-info" *ngIf="currentModelInfo">
-            <span class="mini-badge">{{ currentModelInfo.params }}</span>
+            <span class="mini-badge">{{ currentModelInfo?.params }}</span>
             <span class="mini-badge">{{ currentModelInfo.speed }}</span>
           </div>
         </div>
