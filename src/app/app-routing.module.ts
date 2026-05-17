@@ -10,7 +10,7 @@ const routes: Routes = [
   { path: 'text-submission', component: TextSubmissionInterfaceComponent },
   { path: 'login', component: LoginInterfaceComponent },
   { path: 'signup', component: SignupInterfaceComponent },
-  { path: '', component: LoginInterfaceComponent },
+  { path: '', component: TextSubmissionInterfaceComponent },
   {path: 'review', component: ReviewInterfaceComponent},
   {path: 'history', component: HistoryInterfaceComponent}
 
