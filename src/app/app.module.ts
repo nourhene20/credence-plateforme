@@ -11,8 +11,6 @@ from './components/text-submission-interface/text-submission-interface.component
 import { HttpClientModule } from '@angular/common/http';
 import { LoginInterfaceComponent } from './components/login-interface/login-interface.component';
 import { SignupInterfaceComponent } from './components/signup-interface/signup-interface.component';
-import { ReviewInterfaceComponent } from './components/review-interface/review-interface.component';
-import { HistoryInterfaceComponent } from './components/history-interface/history-interface.component';
 
 
 @NgModule({
@@ -21,9 +19,7 @@ import { HistoryInterfaceComponent } from './components/history-interface/histor
     TextSubmissionInterfaceComponent,
     LoginInterfaceComponent,
     SignupInterfaceComponent,
-    ReviewInterfaceComponent,
-    HistoryInterfaceComponent
-  ],
+    ],
   imports: [
     BrowserModule,
     AppRoutingModule,
