@@ -41,7 +41,7 @@
         <div class="drop-icon" *ngIf="selectedFile">✅</div>
 
         <p class="drop-title" *ngIf="!selectedFile">Drop your TXT file here or click to browse</p>
-        <p class="drop-title success" *ngIf="selectedFile">{{ selectedFile?.name }}</p>
+        <p class="drop-title success" *ngIf="selectedFile">{{ selectedFile.name }}</p>
         <p class="drop-hint">TXT must contain a <code>text</code> column · Max 500 rows</p>
       </div>
     </div>
@@ -95,7 +95,7 @@
             </button>
           </div>
           <div class="item-mini-info" *ngIf="currentModelInfo">
-            <span class="mini-badge">{{ currentModelInfo?.params }}</span>
+            <span class="mini-badge">{{ currentModelInfo.params }}</span>
             <span class="mini-badge">{{ currentModelInfo.speed }}</span>
           </div>
         </div>
@@ -171,7 +171,6 @@
                 <span class="stat-label">Classes</span>
                 <span class="stat-value">{{ currentDatasetInfo.num_classes }}</span>
               </div>
-
             </div>
           </div>
         </div>
@@ -236,8 +235,8 @@
       <!-- RESULTS SECTION - Analysis Results -->
       <div class="results" *ngIf="result">
         <div class="prediction-card">
-          <div class="prediction-badge" [class.positive]="result.prediction === 'POSITIF'"
-            [class.negative]="result.prediction === 'NEGATIF'">
+          <div class="prediction-badge" [class.positive]="result.prediction === 'POSITIVE'"
+            [class.negative]="result.prediction === 'NEGATIVE'">
             {{ result.prediction }}
           </div>
           <div class="confidence">
@@ -293,15 +292,15 @@
               <span class="cmp-label">EU:</span>
               <span class="cmp-value">{{ result.epistemic | number:'1.6-6' }}</span>
               <span class="cmp-arrow">{{ result.epistemic >= thresholdEpi ? '≥' : '<' }}</span>
-                  <span class="cmp-threshold">{{ thresholdEpi | number:'1.6-6' }}</span>
-                  <span class="cmp-status" [class.high]="epiStatus === 'HIGH'">{{ epiStatus }}</span>
+              <span class="cmp-threshold">{{ thresholdEpi | number:'1.6-6' }}</span>
+              <span class="cmp-status" [class.high]="epiStatus === 'HIGH'">{{ epiStatus }}</span>
             </div>
             <div class="comparison-item">
               <span class="cmp-label">AU:</span>
               <span class="cmp-value">{{ (result.aleatoric || 0) | number:'1.6-6' }}</span>
               <span class="cmp-arrow">{{ (result.aleatoric || 0) >= thresholdAle ? '≥' : '<' }}</span>
-                  <span class="cmp-threshold">{{ thresholdAle | number:'1.6-6' }}</span>
-                  <span class="cmp-status" [class.high]="aleStatus === 'HIGH'">{{ aleStatus }}</span>
+              <span class="cmp-threshold">{{ thresholdAle | number:'1.6-6' }}</span>
+              <span class="cmp-status" [class.high]="aleStatus === 'HIGH'">{{ aleStatus }}</span>
             </div>
           </div>
 
@@ -313,7 +312,7 @@
           </div>
         </div>
 
-        <!-- Scatter Plot Section -->
+        <!-- Scatter Plot Section - TOUJOURS visible -->
         <div class="scatter-section">
           <div class="section-header">
             <h3>📊 Uncertainty Decomposition</h3>
@@ -321,11 +320,9 @@
               Epistemic (EU) vs Aleatoric (AU) uncertainty - Colored points by routing decision
             </p>
           </div>
-
           <div class="scatter-container">
             <canvas id="scatterChart" width="800" height="500"></canvas>
           </div>
-
           <div class="scatter-legend">
             <div class="legend-item">
               <div class="legend-color trust"></div>
@@ -348,7 +345,6 @@
               <span class="count">{{ routingCounts.ABSTAIN }}</span>
             </div>
           </div>
-
           <div class="scatter-stats" *ngIf="scatterPoints.length > 0">
             <div class="stat-card">
               <span class="stat-label">Total points</span>
@@ -363,14 +359,13 @@
               <span class="stat-value">{{ getRoutingPercentage('REVIEW') + getRoutingPercentage('ABSTAIN') }}%</span>
             </div>
           </div>
-
           <div class="scatter-hint">
             💡 Click on "Analyze Text" to add points. Adjust the thresholds to see routing decisions recalculate.
           </div>
         </div>
 
-        <!-- Concepts Analysis -->
-        <div class="concepts">
+        <!-- ⭐ CONCEPTS ANALYSIS - UNIQUEMENT SI CONCEPTS EXISTENT ⭐ -->
+        <div class="concepts" *ngIf="hasConcepts()">
           <div class="section-title">📋 Concept Analysis</div>
           <div class="concept-list">
             <div *ngFor="let item of result.concepts | keyvalue" class="concept">
@@ -389,23 +384,24 @@
           </div>
         </div>
 
-        <!-- Histogram -->
-        <div class="histogram-section">
+        <!-- ⭐ HISTOGRAM - UNIQUEMENT SI CONCEPTS EXISTENT ⭐ -->
+        <div class="histogram-section" *ngIf="hasConcepts()">
           <div class="section-title">📊 EU & AU per Concept</div>
           <div class="histogram-container">
             <canvas id="conceptHistogram" width="800" height="400"></canvas>
           </div>
         </div>
 
-        <!-- EU vs Accuracy Curve -->
-        <div class="eu-accuracy-section">
+        <!-- ⭐ EU vs ACCURACY CURVE - UNIQUEMENT SI CONCEPTS EXISTENT ⭐ -->
+        <div class="eu-accuracy-section" *ngIf="hasConcepts()">
           <div class="section-title">📉 EU vs Accuracy Relationship</div>
           <div class="curve-container">
             <canvas id="euAccuracyChart" width="800" height="420"></canvas>
           </div>
         </div>
-        <!-- Heads per Concept Chart -->
-        <div class="heads-section">
+
+        <!-- ⭐ PER-HEAD CONCEPT PREDICTIONS - UNIQUEMENT SI CONCEPTS EXISTENT ⭐ -->
+        <div class="heads-section" *ngIf="hasConcepts() && result.heads_predictions">
           <div class="section-title">📈 Per-Head Concept Predictions</div>
           <p class="section-description">
             Probability predicted by each head for each concept
@@ -414,6 +410,27 @@
             <canvas id="headsPerConceptChart" width="900" height="520"></canvas>
           </div>
         </div>
+
+        <div class="snli-prob-section" *ngIf="!hasConcepts() && result.probabilities">
+          <div class="section-title">🎲 Class Probabilities</div>
+          <p class="section-description">
+            Probability distribution over the three NLI classes
+          </p>
+          <div class="prob-chart-container">
+            <canvas id="snliProbChart" width="800" height="400"></canvas>
+          </div>
+        </div>
+
+        <div class="heads-section" *ngIf="!hasConcepts() && result.heads_predictions">
+          <div class="section-title">📈 Per-Head Class Predictions</div>
+          <p class="section-description">
+            Probability predicted by each head for each NLI class.<br>
+          </p>
+          <div class="curve-container">
+            <canvas id="snliHeadsChart" width="900" height="520"></canvas>
+          </div>
+        </div>
+
         <div class="error" *ngIf="errorMessage">
           <span>⚠️</span> {{ errorMessage }}
         </div>
@@ -422,3 +439,5 @@
         <span>⚠️</span> {{ errorMessage }}
       </div>
     </div>
+  </div>
+</div>

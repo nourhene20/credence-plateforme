@@ -9,15 +9,19 @@ export interface PredictionResult {
   confidence: number;
   epistemic: number;
   aleatoric: number;
-  aleatoric_by_concept: {  
-    food: number;
-    service: number;
-    ambiance: number;
-    noise: number;
+  
+  // Optionnel pour CEBaB
+  aleatoric_by_concept?: { food: number; service: number; ambiance: number; noise: number; };
+  concepts?: Record<string, number>;
+  concept_uncertainties?: Record<string, number>;
+  heads_predictions?: Record<string, Record<string, number>>;
+  
+  // Optionnel pour SNLI
+  probabilities?: {
+    entailment: number;
+    neutral: number;
+    contradiction: number;
   };
-  concepts: Record<string, number>;
-  concept_uncertainties: Record<string, number>;
-  heads_predictions?: Record<string, Record<string, number>>; // NOUVEAU
 }
 
 @Injectable({ providedIn: 'root' })
@@ -26,7 +30,7 @@ export class CredenceService {
 
   constructor(private http: HttpClient) {}
 
-  predict(text: string): Observable<PredictionResult> {
-    return this.http.post<PredictionResult>(`${this.apiUrl}/predict`, { text });
+  predict(text: string, dataset: string = 'cebab'): Observable<PredictionResult> {
+  return this.http.post<PredictionResult>(`${this.apiUrl}/predict`, { text, dataset });
   }
 }

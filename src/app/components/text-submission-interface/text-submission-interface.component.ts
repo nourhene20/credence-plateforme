@@ -68,6 +68,8 @@ export class TextSubmissionInterfaceComponent
   routingCounts = { TRUST: 0, DATA: 0, REVIEW: 0, ABSTAIN: 0 };
   private scatterChart: Chart | null = null;
   private headsPerConceptChart: Chart | null = null;
+  private snliProbChart: Chart | null = null;
+  private snliHeadsChart: Chart | null = null;
   private readonly ROUTING_COLORS: Record<string, string> = {
     TRUST: '#1D9E75',
     DATA: '#378ADD',
@@ -121,6 +123,14 @@ export class TextSubmissionInterfaceComponent
       this.headsPerConceptChart.destroy();
       this.headsPerConceptChart = null;
     }
+    if (this.snliProbChart) {
+      this.snliProbChart.destroy();
+      this.snliProbChart = null;
+    }
+    if (this.snliHeadsChart) {
+      this.snliHeadsChart.destroy();
+      this.snliHeadsChart = null;
+    }
   }
 
   /* Loads models, datasets and tasks from config service */
@@ -173,6 +183,15 @@ export class TextSubmissionInterfaceComponent
 
   updateCurrentModelInfo() {
     this.currentModelInfo = this.configService.getModel(this.selectedModel);
+  }
+
+  /* Checks if the current result contains concept-level information */
+  hasConcepts(): boolean {
+    return !!(
+      this.result &&
+      this.result.concepts &&
+      Object.keys(this.result.concepts).length > 0
+    );
   }
 
   /* Returns emoji icon for selected model */
@@ -429,43 +448,47 @@ export class TextSubmissionInterfaceComponent
 
   /* Main method to trigger analysis */
 
+  // REMPLACER la méthode onSubmit() existante par :
   onSubmit() {
     if (!this.canSubmit()) return;
 
     this.isLoading = true;
     this.errorMessage = '';
     this.result = null;
-    const requestPayload: any = {
-      text: this.inputText,
-      model: this.selectedModel,
-      dataset: this.selectedDataset,
-      model_type: this.modelType,
-    };
 
-    this.credenceService.predict(this.inputText).subscribe({
-      next: (response) => {
-        this.result = response;
-        this.isLoading = false;
-        console.log('Résultat reçu:', response);
-        setTimeout(() => this.addPointAndRender(response), 50);
-        setTimeout(() => this.renderConceptHistogram(), 100);
-        setTimeout(() => this.renderEUCurve(), 150);
-        setTimeout(() => this.renderHeadsPerConceptChart(), 150);
-      },
-      error: (err) => {
-        console.error('Erreur API:', err);
-        this.errorMessage = 'Error: ' + err.message;
-        this.isLoading = false;
-      },
-    });
+    this.credenceService
+      .predict(
+        this.inputText,
+        this.selectedDataset, // "cebab" ou "snli"
+      )
+      .subscribe({
+        next: (response) => {
+          this.result = response;
+          this.isLoading = false;
+
+          setTimeout(() => this.addPointAndRender(response), 50);
+
+          if (this.selectedDataset === 'snli') {
+            setTimeout(() => this.renderSnliProbabilities(response), 100);
+            setTimeout(() => this.renderSnliHeadsChart(), 200);
+          } else {
+            setTimeout(() => this.renderConceptHistogram(), 100);
+            setTimeout(() => this.renderEUCurve(), 150);
+            setTimeout(() => this.renderHeadsPerConceptChart(), 150);
+          }
+        },
+        error: (err) => {
+          console.error('Erreur API:', err);
+          this.errorMessage = 'Error: ' + err.message;
+          this.isLoading = false;
+        },
+      });
   }
 
   /* getter methods */
 
   getUncertainty(conceptKey: string): number {
-    if (!this.result) return 0;
-    const val = this.result.concept_uncertainties[conceptKey];
-    return val ? val : 0;
+    return this.result?.concept_uncertainties?.[conceptKey] ?? 0;
   }
 
   getAleatoricByConcept(conceptKey: string): number {
@@ -521,6 +544,7 @@ export class TextSubmissionInterfaceComponent
       'conceptHistogram',
     ) as HTMLCanvasElement;
     if (!canvas) return;
+
     if (this.conceptHistogram) {
       this.conceptHistogram.destroy();
       this.conceptHistogram = null;
@@ -544,47 +568,24 @@ export class TextSubmissionInterfaceComponent
             label: 'Epistemic Uncertainty (EU)',
             data: euValues,
             backgroundColor: '#f59e0b',
-            borderColor: '#d97706',
-            borderWidth: 1,
+            borderRadius: 8,
           },
           {
             label: 'Aleatoric Uncertainty (AU)',
             data: auValues,
             backgroundColor: '#db2777',
-            borderColor: '#be185d',
-            borderWidth: 1,
+            borderRadius: 8,
           },
         ],
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            position: 'top',
-          },
-          title: {
-            display: false,
-          },
-        },
         scales: {
           y: {
             beginAtZero: true,
             max: 1,
-            ticks: {
-              stepSize: 0.1,
-              precision: 4,
-            },
-            title: {
-              display: true,
-              text: 'Uncertainty Value',
-            },
-          },
-          x: {
-            title: {
-              display: true,
-              text: 'Concepts',
-            },
+            title: { display: true, text: 'Uncertainty Value' },
           },
         },
       },
@@ -679,7 +680,7 @@ export class TextSubmissionInterfaceComponent
       label: '_ale',
       data: [
         { x: -0.0002, y: this.thresholdAle },
-        { x: 0.012, y: this.thresholdAle },
+        { x: 0.02, y: this.thresholdAle },
       ],
       type: 'line',
       borderColor: '#88888877',
@@ -721,8 +722,8 @@ export class TextSubmissionInterfaceComponent
               text: 'Epistemic Uncertainty (EU)',
               color: '#888',
             },
-            min: -0.0002,
-            max: 0.012,
+            min: 0,
+            max: 0.02,
             ticks: {
               callback: (v: any) => Number(v).toFixed(4),
               maxTicksLimit: 6,
@@ -734,7 +735,7 @@ export class TextSubmissionInterfaceComponent
               text: 'Aleatoric Uncertainty (AU)',
               color: '#888',
             },
-            min: -0.05,
+            min: 0,
             max: 1.05,
           },
         },
@@ -751,88 +752,80 @@ export class TextSubmissionInterfaceComponent
   /* Renders the EU vs Accuracy curve, plotting both the theoretical inverse relationship and the current concepts' values */
 
   renderEUCurve() {
-  if (!this.result || !this.result.concepts) return;
+    if (!this.result || !this.result.concepts) return;
 
-  const canvas = document.getElementById('euAccuracyChart') as HTMLCanvasElement;
-  if (!canvas) return;
+    const canvas = document.getElementById(
+      'euAccuracyChart',
+    ) as HTMLCanvasElement;
+    if (!canvas) return;
 
-  if (this.euAccuracyChart) {
-    this.euAccuracyChart.destroy();
-    this.euAccuracyChart = null;
-  }
+    if (this.euAccuracyChart) {
+      this.euAccuracyChart.destroy();
+      this.euAccuracyChart = null;
+    }
 
-  const concepts = Object.keys(this.result.concepts);
-  const euValues: number[] = [];
-  const accuracyValues: number[] = [];
+    const concepts = Object.keys(this.result.concepts);
+    const euValues: number[] = [];
+    const accuracyValues: number[] = [];
 
-  concepts.forEach((concept) => {
-    euValues.push(this.getUncertainty(concept));
-    accuracyValues.push(this.result!.concepts[concept as keyof typeof this.result.concepts]);
-  });
+    concepts.forEach((concept) => {
+      euValues.push(this.getUncertainty(concept));
+      const acc = this.result?.concepts?.[concept];
+      if (acc !== undefined) accuracyValues.push(acc);
+    });
 
-  // Préparer les points pour le scatter plot
-  const points = euValues.map((eu, idx) => ({
-    x: eu,
-    y: accuracyValues[idx]
-  }));
+    const points = euValues.map((eu, idx) => ({
+      x: eu,
+      y: accuracyValues[idx],
+    }));
 
-  this.euAccuracyChart = new Chart(canvas, {
-    type: 'scatter',  // ← Changé de 'line' à 'scatter'
-    data: {
-      datasets: [
-        {
-          label: 'Current Concepts',
-          data: points,
-          backgroundColor: '#3b82f6',
-          borderColor: '#3b82f6',
-          pointRadius: 7,
-          pointHoverRadius: 10,
-        },
-      ],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { position: 'top' },
-        tooltip: {
-          callbacks: {
-            label: (ctx: any) => {
-              const idx = ctx.dataIndex;
-              const conceptName = concepts[idx] || '';
-              const acc = ctx.raw.y;
-              const eu = ctx.raw.x;
-              return [
-                `${conceptName}`,
-                `Accuracy: ${acc.toFixed(3)}`,
-                `EU: ${eu.toFixed(5)}`,
-              ];
+    this.euAccuracyChart = new Chart(canvas, {
+      type: 'scatter',
+      data: {
+        datasets: [
+          {
+            label: 'Current Concepts',
+            data: points,
+            backgroundColor: '#3b82f6',
+            pointRadius: 7,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'top' },
+          tooltip: {
+            callbacks: {
+              label: (ctx: any) => {
+                const idx = ctx.dataIndex;
+                const conceptName = concepts[idx] || '';
+                const acc = ctx.raw.y;
+                const eu = ctx.raw.x;
+                return [
+                  `${conceptName}`,
+                  `Accuracy: ${acc.toFixed(3)}`,
+                  `EU: ${eu.toFixed(5)}`,
+                ];
+              },
             },
           },
         },
-      },
-      scales: {
-        x: {
-          title: { display: true, text: 'Epistemic Uncertainty (EU)' },
-          type: 'linear',
-          min: 0,
-        },
-        y: {
-          title: { display: true, text: 'Accuracy / Concept Confidence' },
-          min: 0,
-          max: 1.05,
+        scales: {
+          x: {
+            title: { display: true, text: 'Epistemic Uncertainty (EU)' },
+            min: 0,
+          },
+          y: { title: { display: true, text: 'Accuracy' }, min: 0, max: 1 },
         },
       },
-    },
-  });
-}
+    });
+  }
   /* Renders a line chart showing the per-head predictions for each concept, with one line per concept */
 
   renderHeadsPerConceptChart() {
-    if (!this.result?.heads_predictions) {
-      console.warn('heads_predictions non disponible dans le résultat');
-      return;
-    }
+    if (!this.hasConcepts() || !this.result?.heads_predictions) return;
 
     const canvas = document.getElementById(
       'headsPerConceptChart',
@@ -844,34 +837,37 @@ export class TextSubmissionInterfaceComponent
       this.headsPerConceptChart = null;
     }
 
-    const conceptNames = Object.keys(this.result.heads_predictions);
-    const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444'];
+    const headNames = Object.keys(this.result.heads_predictions); // ex: ['head_0', 'head_1', ...]
+    const conceptNames = Object.keys(
+      this.result.heads_predictions[headNames[0]] ?? {},
+    );
+    const headColors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#62d3ad'];
 
-    const datasets: any[] = [];
+    const datasets = headNames.map((headName, idx) => {
+      const headData = this.result!.heads_predictions![headName];
 
-    conceptNames.forEach((concept, idx) => {
-      const headValues = this.result!.heads_predictions![concept];
-      const headNumbers: number[] = Object.values(headValues);
+      const values = conceptNames.map((concept) => headData[concept] ?? 0);
 
-      datasets.push({
-        label: concept.charAt(0).toUpperCase() + concept.slice(1),
-        data: headNumbers,
-        borderColor: colors[idx % colors.length],
-        backgroundColor: colors[idx % colors.length] + '33',
+      return {
+        label: `Head ${idx}`,
+        data: values,
+        borderColor: headColors[idx % headColors.length],
+        backgroundColor: headColors[idx % headColors.length] + '33',
         borderWidth: 3,
         tension: 0.3,
-        pointRadius: 6,
-        pointHoverRadius: 9,
+        pointRadius: 7,
+        pointHoverRadius: 10,
         pointBackgroundColor: '#ffffff',
         pointBorderWidth: 2,
-      });
+        fill: false,
+      };
     });
 
     this.headsPerConceptChart = new Chart(canvas, {
       type: 'line',
       data: {
-        labels: ['Head 0', 'Head 1', 'Head 2', 'Head 3', 'Head 4'],
-        datasets: datasets,
+        labels: conceptNames.map((c) => c.charAt(0).toUpperCase() + c.slice(1)),
+        datasets,
       },
       options: {
         responsive: true,
@@ -894,8 +890,161 @@ export class TextSubmissionInterfaceComponent
             mode: 'index',
             intersect: false,
             callbacks: {
+              label: (ctx) =>
+                `${ctx.dataset.label}: ${(ctx.raw as number).toFixed(4)}`,
+            },
+          },
+        },
+        scales: {
+          y: {
+            min: 0,
+            max: 1,
+            title: { display: true, text: 'Predicted Probability' },
+            ticks: { stepSize: 0.1 },
+          },
+          x: {
+            title: { display: true, text: 'Concepts' },
+          },
+        },
+      },
+    });
+  }
+  
+  /* Renders a bar chart showing the predicted probabilities for each NLI class (entailment, neutral, contradiction) for the SNLI dataset */
+  
+  renderSnliProbabilities(response: PredictionResult) {
+    if (!response.probabilities) {
+      console.warn('Pas de probabilités pour SNLI');
+      return;
+    }
+
+    const canvas = document.getElementById(
+      'snliProbChart',
+    ) as HTMLCanvasElement;
+    if (!canvas) return;
+
+    if (this.snliProbChart) {
+      this.snliProbChart.destroy();
+      this.snliProbChart = null;
+    }
+
+    const probs = response.probabilities;
+    const labels = ['Entailment', 'Neutral', 'Contradiction'];
+    const values = [probs.entailment, probs.neutral, probs.contradiction];
+    const colors = ['#10b981', '#f59e0b', '#ef4444'];
+
+    this.snliProbChart = new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: 'Probability',
+            data: values,
+            backgroundColor: colors,
+            borderRadius: 8,
+            barPercentage: 0.6,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: (ctx) =>
+                `Probability: ${((ctx.raw as number) * 100).toFixed(1)}%`,
+            },
+          },
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            max: 1,
+            title: { display: true, text: 'Probability' },
+            ticks: {
+              callback: (value) => `${((value as number) * 100).toFixed(0)}%`,
+            },
+          },
+        },
+      },
+    });
+  }
+
+ /* Renders a line chart showing the predictions of each attention head for the SNLI dataset, with one line per head and points for each NLI class */
+  
+ renderSnliHeadsChart() {
+    if (!this.result?.heads_predictions) {
+      console.warn('heads_predictions non disponible pour SNLI');
+      return;
+    }
+
+    const canvas = document.getElementById(
+      'snliHeadsChart',
+    ) as HTMLCanvasElement;
+    if (!canvas) return;
+
+    if (this.snliHeadsChart) {
+      this.snliHeadsChart.destroy();
+      this.snliHeadsChart = null;
+    }
+
+    const headNames = Object.keys(this.result.heads_predictions);
+    const classLabels = ['entailment', 'neutral', 'contradiction'];
+    const classDisplayNames = ['Entailment', 'Neutral', 'Contradiction'];
+
+
+    const headColors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#62d3ad'];
+
+    const datasets = [];
+    for (let i = 0; i < headNames.length; i++) {
+      const headName = headNames[i];
+      const headData = this.result.heads_predictions[headName];
+      const classProbs = classLabels.map(
+        (className) => headData[className] || 0,
+      );
+
+      datasets.push({
+        label: `Head ${i}`,
+        data: classProbs,
+        borderColor: headColors[i % headColors.length],
+        backgroundColor: headColors[i % headColors.length] + '33',
+        borderWidth: 3,
+        tension: 0.2,
+        pointRadius: 7,
+        pointHoverRadius: 10,
+        pointBackgroundColor: '#ffffff',
+        pointBorderWidth: 2,
+        fill: false,
+      });
+    }
+
+    this.snliHeadsChart = new Chart(canvas, {
+      type: 'line',
+      data: {
+        labels: classDisplayNames,
+        datasets: datasets,
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'top',
+            align: 'center',
+            labels: {
+              font: { size: 13, weight: 'bold' },
+              usePointStyle: true,
+              padding: 20,
+            },
+          },
+          tooltip: {
+            callbacks: {
               label: (ctx) => {
-                return `${ctx.dataset.label}: ${(ctx.raw as number).toFixed(4)}`;
+                const probability = (ctx.raw as number) * 100;
+                return `${ctx.dataset.label}: ${probability.toFixed(1)}%`;
               },
             },
           },
@@ -904,19 +1053,13 @@ export class TextSubmissionInterfaceComponent
           y: {
             min: 0,
             max: 1,
-            title: {
-              display: true,
-              text: 'Predicted Probability',
-            },
+            title: { display: true, text: 'Probability' },
             ticks: {
-              stepSize: 0.1,
+              callback: (value) => `${((value as number) * 100).toFixed(0)}%`,
             },
           },
           x: {
-            title: {
-              display: true,
-              text: 'Heads',
-            },
+            title: { display: true, text: 'NLI Classes' },
           },
         },
       },

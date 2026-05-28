@@ -431,8 +431,8 @@
       "year": 2020,
       "sample": "I'm so excited about the concert tomorrow!"
     },
-    "chaosnli": {
-      "name": "ChaosNLI",
+    "snli": {
+      "name": "SNLI",
       "description": "NLI avec désaccord entre annotateurs. Capture l'ambiguïté et la subjectivité dans l'inférence naturelle.",
       "icon": "🔍",
       "task": "nli",
