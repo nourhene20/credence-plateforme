@@ -10,13 +10,13 @@ export interface PredictionResult {
   epistemic: number;
   aleatoric: number;
   
-  // Optionnel pour CEBaB
+  
   aleatoric_by_concept?: { food: number; service: number; ambiance: number; noise: number; };
   concepts?: Record<string, number>;
   concept_uncertainties?: Record<string, number>;
   heads_predictions?: Record<string, Record<string, number>>;
   
-  // Optionnel pour SNLI
+  
   probabilities?: {
     entailment: number;
     neutral: number;

@@ -451,7 +451,13 @@ export class TextSubmissionInterfaceComponent
   // REMPLACER la méthode onSubmit() existante par :
   onSubmit() {
     if (!this.canSubmit()) return;
-
+    if (this.selectedDataset === 'tid8') {
+    if (!this.validateTid8Format(this.inputText)) {
+      this.errorMessage = ' Format invalide pour TID-8. use premise [SEP] hypothesis\nExemple: "A man is playing guitar [SEP] A person is performing music"';
+      this.isLoading = false;
+      return;
+    }
+  }
     this.isLoading = true;
     this.errorMessage = '';
     this.result = null;
@@ -459,7 +465,7 @@ export class TextSubmissionInterfaceComponent
     this.credenceService
       .predict(
         this.inputText,
-        this.selectedDataset, // "cebab" ou "snli"
+        this.selectedDataset, 
       )
       .subscribe({
         next: (response) => {
@@ -468,7 +474,7 @@ export class TextSubmissionInterfaceComponent
 
           setTimeout(() => this.addPointAndRender(response), 50);
 
-          if (this.selectedDataset === 'snli') {
+          if (this.selectedDataset === 'tid8') {
             setTimeout(() => this.renderSnliProbabilities(response), 100);
             setTimeout(() => this.renderSnliHeadsChart(), 200);
           } else {
@@ -1065,4 +1071,14 @@ export class TextSubmissionInterfaceComponent
       },
     });
   }
+  getTextareaPlaceholder(): string {
+  if (this.selectedDataset === 'tid8') {
+    return 'Enter premise [SEP] hypothesis \nExample: A man is playing guitar [SEP] A person is performing music';
+  }
+  return 'Enter your text here for analysis...';
+}
+validateTid8Format(text: string): boolean {
+  
+  return text.includes('[SEP]');
+}
 }

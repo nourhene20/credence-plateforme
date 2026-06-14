@@ -21,7 +21,7 @@
 
     <!-- Input Area -Mode Single -->
     <div class="input-area" *ngIf="mode === 'single'">
-      <textarea class="main-textarea" placeholder="Enter your text here for analysis..." [(ngModel)]="inputText"
+      <textarea class="main-textarea" [placeholder]="getTextareaPlaceholder()"  [(ngModel)]="inputText"
         (input)="onInput()" maxlength="512" rows="5"></textarea>
 
       <div class="input-footer">
@@ -384,7 +384,7 @@
           </div>
         </div>
 
-        <!-- ⭐ HISTOGRAM - UNIQUEMENT SI CONCEPTS EXISTENT ⭐ -->
+        <!--  HISTOGRAM - UNIQUEMENT SI CONCEPTS EXISTENT  -->
         <div class="histogram-section" *ngIf="hasConcepts()">
           <div class="section-title">📊 EU & AU per Concept</div>
           <div class="histogram-container">
@@ -392,7 +392,7 @@
           </div>
         </div>
 
-        <!-- ⭐ EU vs ACCURACY CURVE - UNIQUEMENT SI CONCEPTS EXISTENT ⭐ -->
+        <!--  EU vs ACCURACY CURVE - UNIQUEMENT SI CONCEPTS EXISTENT  -->
         <div class="eu-accuracy-section" *ngIf="hasConcepts()">
           <div class="section-title">📉 EU vs Accuracy Relationship</div>
           <div class="curve-container">
@@ -400,7 +400,7 @@
           </div>
         </div>
 
-        <!-- ⭐ PER-HEAD CONCEPT PREDICTIONS - UNIQUEMENT SI CONCEPTS EXISTENT ⭐ -->
+        <!--  PER-HEAD CONCEPT PREDICTIONS - UNIQUEMENT SI CONCEPTS EXISTENT  -->
         <div class="heads-section" *ngIf="hasConcepts() && result.heads_predictions">
           <div class="section-title">📈 Per-Head Concept Predictions</div>
           <p class="section-description">
