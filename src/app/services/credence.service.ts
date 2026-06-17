@@ -30,7 +30,7 @@ export class CredenceService {
 
   constructor(private http: HttpClient) {}
 
-  predict(text: string, dataset: string = 'cebab'): Observable<PredictionResult> {
-  return this.http.post<PredictionResult>(`${this.apiUrl}/predict`, { text, dataset });
+  predict(text: string,encoder: string, dataset: string , n_heads: number = 5): Observable<PredictionResult> {
+  return this.http.post<PredictionResult>(`${this.apiUrl}/predict`, { text, encoder, dataset, n_heads });
   }
 }

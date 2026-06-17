@@ -149,13 +149,13 @@ export class TextSubmissionInterfaceComponent
       this.buildDatasetGroups();
       this.updateCurrentModelInfo();
       this.updateCurrentDatasetInfo();
-      console.log('Configuration chargée:', {
+      console.log('Configuration loaded:', {
         encoderModels: this.encoderModels.length,
         llmModels: this.llmModels.length,
         datasets: this.datasets.length,
       });
     } catch (error) {
-      console.error('Erreur chargement configuration:', error);
+      console.error('Error loading configuration:', error);
       this.encoderModels = [];
       this.llmModels = [];
       this.datasets = [];
@@ -176,7 +176,7 @@ export class TextSubmissionInterfaceComponent
   /* Updates current model info when selection changes */
   onModelChange() {
     this.updateCurrentModelInfo();
-    console.log('Modèle sélectionné:', this.selectedModel);
+    console.log('Model selected:', this.selectedModel);
   }
 
   /* Updates displayed model information */
@@ -251,7 +251,7 @@ export class TextSubmissionInterfaceComponent
 
   onDatasetChange() {
     this.updateCurrentDatasetInfo();
-    console.log('Dataset sélectionné:', this.selectedDataset);
+    console.log('Dataset selected:', this.selectedDataset);
   }
 
   /* Updates current dataset information */
@@ -448,12 +448,11 @@ export class TextSubmissionInterfaceComponent
 
   /* Main method to trigger analysis */
 
-  // REMPLACER la méthode onSubmit() existante par :
   onSubmit() {
     if (!this.canSubmit()) return;
     if (this.selectedDataset === 'tid8') {
     if (!this.validateTid8Format(this.inputText)) {
-      this.errorMessage = ' Format invalide pour TID-8. use premise [SEP] hypothesis\nExemple: "A man is playing guitar [SEP] A person is performing music"';
+      this.errorMessage = ' Invalid format for TID-8. use premise [SEP] hypothesis\nExample: "A man is playing guitar [SEP] A person is performing music"';
       this.isLoading = false;
       return;
     }
@@ -465,7 +464,9 @@ export class TextSubmissionInterfaceComponent
     this.credenceService
       .predict(
         this.inputText,
+        this.selectedModel,
         this.selectedDataset, 
+        5
       )
       .subscribe({
         next: (response) => {
@@ -484,7 +485,7 @@ export class TextSubmissionInterfaceComponent
           }
         },
         error: (err) => {
-          console.error('Erreur API:', err);
+          console.error('API Error:', err);
           this.errorMessage = 'Error: ' + err.message;
           this.isLoading = false;
         },
@@ -640,7 +641,7 @@ export class TextSubmissionInterfaceComponent
   renderScatterChart() {
     const canvas = document.getElementById('scatterChart') as HTMLCanvasElement;
     if (!canvas) {
-      console.error('Canvas scatterChart non trouvé');
+      console.error('Canvas scatterChart not found');
       return;
     }
     if (this.scatterChart) {
@@ -920,7 +921,7 @@ export class TextSubmissionInterfaceComponent
   
   renderSnliProbabilities(response: PredictionResult) {
     if (!response.probabilities) {
-      console.warn('Pas de probabilités pour SNLI');
+      console.warn('No probabilities for SNLI');
       return;
     }
 
@@ -983,7 +984,7 @@ export class TextSubmissionInterfaceComponent
   
  renderSnliHeadsChart() {
     if (!this.result?.heads_predictions) {
-      console.warn('heads_predictions non disponible pour SNLI');
+      console.warn('heads_predictions not available for SNLI');
       return;
     }
 

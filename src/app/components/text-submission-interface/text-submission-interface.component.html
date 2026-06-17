@@ -46,7 +46,7 @@
       </div>
     </div>
 
-    <!-- CONFIGURATION PANEL - MODÈLE & DATASET Settings-->
+    <!-- CONFIGURATION PANEL - MODEL & DATASET Settings-->
     <div class="config-panel">
       <div class="config-header">
         <span class="config-icon">⚙️</span>
@@ -312,7 +312,7 @@
           </div>
         </div>
 
-        <!-- Scatter Plot Section - TOUJOURS visible -->
+        <!-- Scatter Plot Section - ALWAYS visible -->
         <div class="scatter-section">
           <div class="section-header">
             <h3>📊 Uncertainty Decomposition</h3>
@@ -364,7 +364,7 @@
           </div>
         </div>
 
-        <!-- ⭐ CONCEPTS ANALYSIS - UNIQUEMENT SI CONCEPTS EXISTENT ⭐ -->
+        <!-- CONCEPTS ANALYSIS - ONLY IF CONCEPTS EXIST  -->
         <div class="concepts" *ngIf="hasConcepts()">
           <div class="section-title">📋 Concept Analysis</div>
           <div class="concept-list">
@@ -384,7 +384,7 @@
           </div>
         </div>
 
-        <!--  HISTOGRAM - UNIQUEMENT SI CONCEPTS EXISTENT  -->
+        <!--  HISTOGRAM - ONLY IF CONCEPTS EXIST  -->
         <div class="histogram-section" *ngIf="hasConcepts()">
           <div class="section-title">📊 EU & AU per Concept</div>
           <div class="histogram-container">
@@ -392,7 +392,7 @@
           </div>
         </div>
 
-        <!--  EU vs ACCURACY CURVE - UNIQUEMENT SI CONCEPTS EXISTENT  -->
+        <!--  EU vs ACCURACY CURVE - ONLY IF CONCEPTS EXIST  -->
         <div class="eu-accuracy-section" *ngIf="hasConcepts()">
           <div class="section-title">📉 EU vs Accuracy Relationship</div>
           <div class="curve-container">
@@ -400,7 +400,7 @@
           </div>
         </div>
 
-        <!--  PER-HEAD CONCEPT PREDICTIONS - UNIQUEMENT SI CONCEPTS EXISTENT  -->
+        <!--  PER-HEAD CONCEPT PREDICTIONS - ONLY IF CONCEPTS EXIST  -->
         <div class="heads-section" *ngIf="hasConcepts() && result.heads_predictions">
           <div class="section-title">📈 Per-Head Concept Predictions</div>
           <p class="section-description">

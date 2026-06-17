@@ -46,5 +46,7 @@ src/app/components/review-interface
 src/app/components/shared
 checkpoints
 credence-backend-only
-
+test.py
+credence_model/__pycache__/
+__pycache__/
 
