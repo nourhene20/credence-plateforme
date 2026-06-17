@@ -61,17 +61,17 @@ class ModelManager:
             for k, tensor in state.items():
                 if ("fc1.weight" in k or "heads.0" in k) and "weight" in k:
                     hidden_size = tensor.shape[1]
-                    print(f"  hidden_size déduit depuis poids : {hidden_size}")
+                    print(f"  hidden_size inferred from weights: {hidden_size}")
                     break
 
         if hidden_size is None:
             raise ValueError(
-                f"hidden_size introuvable pour {info.repo_id}\n"
-                f"Clés checkpoint : {list(ckpt.keys())}\n"
-                f"Clés config     : {list(config.keys())}"
+                f"hidden_size not found for {info.repo_id}\n"
+                f"Checkpoint keys: {list(ckpt.keys())}\n"
+                f"Config keys    : {list(config.keys())}"
             )
 
-        print(f"  hidden_size : {hidden_size}")
+        print(f"  hidden_size: {hidden_size}")
 
         valid_fields = ExperimentConfig.__dataclass_fields__.keys()
         exp_config   = ExperimentConfig(**{
@@ -104,7 +104,7 @@ class ModelManager:
         return self._encoders[encoder_hf_id]
 
     def _load_encoder(self, encoder_hf_id: str):
-        print(f" Chargement encodeur : {encoder_hf_id}")
+        print(f"Loading encoder: {encoder_hf_id}")
 
         model_info   = MODEL_REGISTRY.get(encoder_hf_id, {})
         encoder_type = model_info.get("type", "encoder")
@@ -124,17 +124,17 @@ class ModelManager:
                 import sentencepiece
             except ImportError:
                 raise ImportError(
-                    "sentencepiece requis pour DeBERTa-v3.\n"
-                    "Installez avec : pip install sentencepiece protobuf"
+                    "sentencepiece required for DeBERTa-v3.\n"
+                    "Install with: pip install sentencepiece protobuf"
                 )
             from transformers import AutoTokenizer
             tok = AutoTokenizer.from_pretrained(
                 encoder_hf_id,
                 use_fast=False   
             )
-            print("  DeBERTa-v3 : tokenizer slow chargé")
+            print("  DeBERTa-v3: slow tokenizer loaded")
 
-        print(f" Encodeur : {encoder_hf_id} ({mtype}, hidden={hidden_size})")
+        print(f"Encoder: {encoder_hf_id} ({mtype}, hidden={hidden_size})")
         return enc, tok, hidden_size, mtype
 
     def get_model_type(self, encoder_hf_id: str) -> str:

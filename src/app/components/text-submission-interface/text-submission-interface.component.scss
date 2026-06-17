@@ -1325,7 +1325,7 @@
   }
 }
 
-// HISTOGRAMME SECTION
+// HISTOGRAM SECTION
 
 .histogram-section {
   background: white;
@@ -1356,7 +1356,7 @@
   }
 }
 
-// COURBE EU vs ACCURACY
+// EU vs ACCURACY CURVE
 
 .eu-accuracy-section {
   background: white;
@@ -1493,4 +1493,46 @@
     width: 100% !important;
     height: 450px !important;
   }
+}
+.heads-toggle {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.head-btn {
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1.5px solid #e2e8f0;
+  background: transparent;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+
+  &:hover {
+    border-color: #6366f1;
+    color: #6366f1;
+  }
+
+  &.active {
+    background: #6366f1;
+    border-color: #6366f1;
+    color: white;
+    font-weight: 600;
+  }
+}
+
+.no-checkpoint-warning {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
+  color: #ef4444;
+  font-size: 13px;
+  width: 100%;
 }

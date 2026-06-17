@@ -21,7 +21,7 @@
 
     <!-- Input Area -Mode Single -->
     <div class="input-area" *ngIf="mode === 'single'">
-      <textarea class="main-textarea" [placeholder]="getTextareaPlaceholder()"  [(ngModel)]="inputText"
+      <textarea class="main-textarea" [placeholder]="getTextareaPlaceholder()" [(ngModel)]="inputText"
         (input)="onInput()" maxlength="512" rows="5"></textarea>
 
       <div class="input-footer">
@@ -175,7 +175,34 @@
           </div>
         </div>
       </div>
+      <!-- N_HEADS SELECTION -->
+      <div class="config-row" *ngIf="availableHeads.length > 0">
+        <div class="config-item">
+          <div class="item-label">
+            <span class="label-icon">🔢</span>
+            <span>Number of Heads</span>
+          </div>
+          <div class="item-control">
+            <div class="heads-toggle">
+              <button *ngFor="let n of availableHeads" class="head-btn" [class.active]="selectedNHeads === n"
+                (click)="selectedNHeads = n">
+                {{ n }}
+              </button>
+            </div>
+          </div>
+          <div class="item-mini-info">
+            <span class="mini-badge">{{ selectedNHeads }} heads selected</span>
+          </div>
+        </div>
+      </div>
 
+      <div class="config-row" *ngIf="noCheckpointAvailable">
+        <div class="no-checkpoint-warning">
+          ⚠️ No checkpoint available for
+          <strong>{{ selectedModel }}</strong> +
+          <strong>{{ selectedDataset }}</strong>
+        </div>
+      </div>
       <!-- THRESHOLDS - Routing Decision Thresholds -->
       <div class="thresholds">
         <div class="threshold-header">
@@ -292,15 +319,15 @@
               <span class="cmp-label">EU:</span>
               <span class="cmp-value">{{ result.epistemic | number:'1.6-6' }}</span>
               <span class="cmp-arrow">{{ result.epistemic >= thresholdEpi ? '≥' : '<' }}</span>
-              <span class="cmp-threshold">{{ thresholdEpi | number:'1.6-6' }}</span>
-              <span class="cmp-status" [class.high]="epiStatus === 'HIGH'">{{ epiStatus }}</span>
+                  <span class="cmp-threshold">{{ thresholdEpi | number:'1.6-6' }}</span>
+                  <span class="cmp-status" [class.high]="epiStatus === 'HIGH'">{{ epiStatus }}</span>
             </div>
             <div class="comparison-item">
               <span class="cmp-label">AU:</span>
               <span class="cmp-value">{{ (result.aleatoric || 0) | number:'1.6-6' }}</span>
               <span class="cmp-arrow">{{ (result.aleatoric || 0) >= thresholdAle ? '≥' : '<' }}</span>
-              <span class="cmp-threshold">{{ thresholdAle | number:'1.6-6' }}</span>
-              <span class="cmp-status" [class.high]="aleStatus === 'HIGH'">{{ aleStatus }}</span>
+                  <span class="cmp-threshold">{{ thresholdAle | number:'1.6-6' }}</span>
+                  <span class="cmp-status" [class.high]="aleStatus === 'HIGH'">{{ aleStatus }}</span>
             </div>
           </div>
 

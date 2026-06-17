@@ -23,6 +23,12 @@ interface ScatterPoint {
   text: string;
 }
 
+interface AvailableCombination {
+  encoder: string;
+  dataset: string;
+  n_heads: number;
+}
+
 @Component({
   selector: 'app-text-submission-interface',
   templateUrl: './text-submission-interface.component.html',
@@ -70,6 +76,10 @@ export class TextSubmissionInterfaceComponent
   private headsPerConceptChart: Chart | null = null;
   private snliProbChart: Chart | null = null;
   private snliHeadsChart: Chart | null = null;
+  availableCombinations: AvailableCombination[] = [];
+  availableHeads: number[] = [];
+  selectedNHeads: number = 5;
+  noCheckpointAvailable: boolean = false;
   private readonly ROUTING_COLORS: Record<string, string> = {
     TRUST: '#1D9E75',
     DATA: '#378ADD',
@@ -91,6 +101,7 @@ export class TextSubmissionInterfaceComponent
     if (!this.currentUser) {
       this.router.navigate(['/login']);
     }*/
+    this.loadAvailableCombinations();
     this.loadConfig();
   }
 
@@ -149,6 +160,7 @@ export class TextSubmissionInterfaceComponent
       this.buildDatasetGroups();
       this.updateCurrentModelInfo();
       this.updateCurrentDatasetInfo();
+      this.updateAvailableHeads();
       console.log('Configuration loaded:', {
         encoderModels: this.encoderModels.length,
         llmModels: this.llmModels.length,
@@ -171,11 +183,13 @@ export class TextSubmissionInterfaceComponent
       type === 'encoder' ? [...this.encoderModels] : [...this.llmModels];
     this.selectedModel = this.filteredModels[0]?.key || '';
     this.updateCurrentModelInfo();
+    this.updateAvailableHeads();
   }
 
   /* Updates current model info when selection changes */
   onModelChange() {
     this.updateCurrentModelInfo();
+    this.updateAvailableHeads();
     console.log('Model selected:', this.selectedModel);
   }
 
@@ -251,6 +265,7 @@ export class TextSubmissionInterfaceComponent
 
   onDatasetChange() {
     this.updateCurrentDatasetInfo();
+    this.updateAvailableHeads();
     console.log('Dataset selected:', this.selectedDataset);
   }
 
@@ -451,12 +466,13 @@ export class TextSubmissionInterfaceComponent
   onSubmit() {
     if (!this.canSubmit()) return;
     if (this.selectedDataset === 'tid8') {
-    if (!this.validateTid8Format(this.inputText)) {
-      this.errorMessage = ' Invalid format for TID-8. use premise [SEP] hypothesis\nExample: "A man is playing guitar [SEP] A person is performing music"';
-      this.isLoading = false;
-      return;
+      if (!this.validateTid8Format(this.inputText)) {
+        this.errorMessage =
+          ' Invalid format for TID-8. use premise [SEP] hypothesis\nExample: "A man is playing guitar [SEP] A person is performing music"';
+        this.isLoading = false;
+        return;
+      }
     }
-  }
     this.isLoading = true;
     this.errorMessage = '';
     this.result = null;
@@ -465,8 +481,8 @@ export class TextSubmissionInterfaceComponent
       .predict(
         this.inputText,
         this.selectedModel,
-        this.selectedDataset, 
-        5
+        this.selectedDataset,
+        this.selectedNHeads,
       )
       .subscribe({
         next: (response) => {
@@ -844,7 +860,7 @@ export class TextSubmissionInterfaceComponent
       this.headsPerConceptChart = null;
     }
 
-    const headNames = Object.keys(this.result.heads_predictions); // ex: ['head_0', 'head_1', ...]
+    const headNames = Object.keys(this.result.heads_predictions); 
     const conceptNames = Object.keys(
       this.result.heads_predictions[headNames[0]] ?? {},
     );
@@ -916,9 +932,9 @@ export class TextSubmissionInterfaceComponent
       },
     });
   }
-  
+
   /* Renders a bar chart showing the predicted probabilities for each NLI class (entailment, neutral, contradiction) for the SNLI dataset */
-  
+
   renderSnliProbabilities(response: PredictionResult) {
     if (!response.probabilities) {
       console.warn('No probabilities for SNLI');
@@ -980,9 +996,9 @@ export class TextSubmissionInterfaceComponent
     });
   }
 
- /* Renders a line chart showing the predictions of each attention head for the SNLI dataset, with one line per head and points for each NLI class */
-  
- renderSnliHeadsChart() {
+  /* Renders a line chart showing the predictions of each attention head for the SNLI dataset, with one line per head and points for each NLI class */
+
+  renderSnliHeadsChart() {
     if (!this.result?.heads_predictions) {
       console.warn('heads_predictions not available for SNLI');
       return;
@@ -1001,7 +1017,6 @@ export class TextSubmissionInterfaceComponent
     const headNames = Object.keys(this.result.heads_predictions);
     const classLabels = ['entailment', 'neutral', 'contradiction'];
     const classDisplayNames = ['Entailment', 'Neutral', 'Contradiction'];
-
 
     const headColors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#62d3ad'];
 
@@ -1073,13 +1088,111 @@ export class TextSubmissionInterfaceComponent
     });
   }
   getTextareaPlaceholder(): string {
-  if (this.selectedDataset === 'tid8') {
-    return 'Enter premise [SEP] hypothesis \nExample: A man is playing guitar [SEP] A person is performing music';
+    if (this.selectedDataset === 'tid8') {
+      return 'Enter premise [SEP] hypothesis \nExample: A man is playing guitar [SEP] A person is performing music';
+    }
+    return 'Enter your text here for analysis...';
   }
-  return 'Enter your text here for analysis...';
-}
-validateTid8Format(text: string): boolean {
-  
-  return text.includes('[SEP]');
-}
+  validateTid8Format(text: string): boolean {
+    return text.includes('[SEP]');
+  }
+  loadAvailableCombinations() {
+    this.availableCombinations = [
+      // ModernBERT
+      {
+        encoder: 'answerdotai/ModernBERT-base',
+        dataset: 'hatexplain',
+        n_heads: 5,
+      },
+      {
+        encoder: 'answerdotai/ModernBERT-base',
+        dataset: 'hatexplain',
+        n_heads: 7,
+      },
+
+      // DeBERTa-v3
+      {
+        encoder: 'microsoft/deberta-v3-base',
+        dataset: 'hatexplain',
+        n_heads: 3,
+      },
+      {
+        encoder: 'microsoft/deberta-v3-base',
+        dataset: 'hatexplain',
+        n_heads: 5,
+      },
+      {
+        encoder: 'microsoft/deberta-v3-base',
+        dataset: 'hatexplain',
+        n_heads: 7,
+      },
+      {
+        encoder: 'microsoft/deberta-v3-base',
+        dataset: 'hatexplain',
+        n_heads: 10,
+      },
+      {
+        encoder: 'microsoft/deberta-v3-base',
+        dataset: 'hatexplain',
+        n_heads: 15,
+      },
+
+      // RoBERTa — ablation
+      { encoder: 'roberta-base', dataset: 'hatexplain', n_heads: 1 },
+      { encoder: 'roberta-base', dataset: 'hatexplain', n_heads: 3 },
+      { encoder: 'roberta-base', dataset: 'hatexplain', n_heads: 5 },
+      { encoder: 'roberta-base', dataset: 'hatexplain', n_heads: 7 },
+      { encoder: 'roberta-base', dataset: 'hatexplain', n_heads: 10 },
+      { encoder: 'roberta-base', dataset: 'hatexplain', n_heads: 15 },
+
+      // RoBERTa — datasets
+      { encoder: 'roberta-base', dataset: 'cebab', n_heads: 5 },
+      { encoder: 'roberta-base', dataset: 'goemotions', n_heads: 5 },
+
+      // Phi-3
+      {
+        encoder: 'microsoft/phi-3-mini-4k-instruct',
+        dataset: 'cebab',
+        n_heads: 5,
+      },
+      {
+        encoder: 'microsoft/phi-3-mini-4k-instruct',
+        dataset: 'goemotions',
+        n_heads: 5,
+      },
+      {
+        encoder: 'microsoft/phi-3-mini-4k-instruct',
+        dataset: 'hatexplain',
+        n_heads: 5,
+      },
+    ];
+    console.log(
+      ' Available combinations loaded:',
+      this.availableCombinations.length,
+    );
+    console.log(' Sample:', this.availableCombinations.slice(0, 3));
+
+    this.updateAvailableHeads();
+  }
+  updateAvailableHeads() {
+    this.availableHeads = this.availableCombinations
+      .filter(
+        (c) =>
+          c.encoder === this.selectedModel &&
+          c.dataset === this.selectedDataset,
+      )
+      .map((c) => c.n_heads)
+      .sort((a, b) => a - b);
+
+    this.noCheckpointAvailable = this.availableHeads.length === 0;
+
+    console.log(' Available heads:', this.availableHeads);
+    console.log(' No checkpoint:', this.noCheckpointAvailable);
+
+    if (this.availableHeads.includes(5)) {
+      this.selectedNHeads = 5;
+    } else if (this.availableHeads.length > 0) {
+      this.selectedNHeads = this.availableHeads[0];
+    }
+  }
 }
