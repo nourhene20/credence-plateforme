@@ -125,8 +125,8 @@ def format_response(outputs: dict, dataset: str) -> dict:
 
 class PredictRequest(BaseModel):
     text:    str
-    encoder: str = "roberta-base"
-    dataset: str = "hatexplain"
+    encoder: str 
+    dataset: str 
     n_heads: int = 5
 
 class PredictResponse(BaseModel):
