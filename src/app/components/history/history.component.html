@@ -1,0 +1,228 @@
+<div class="history-container">
+  
+<app-header></app-header>
+
+  <div class="main-card">
+    
+    <div class="history-header">
+      <div class="header-left">
+        <h1>📜 Prediction History</h1>
+        <span class="badge">{{ totalItems }} predictions</span>
+      </div>
+      <div class="header-right">
+        <button class="btn-export" (click)="exportData()" [disabled]="historyData.length === 0">
+          📥 Export
+        </button>
+        <button class="btn-refresh" (click)="loadData()" [disabled]="isLoading">
+          🔄
+        </button>
+      </div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon">📈</div>
+        <div class="stat-info">
+          <span class="stat-value">{{ stats.total }}</span>
+          <span class="stat-label">Total</span>
+        </div>
+      </div>
+      <div class="stat-card trust">
+        <div class="stat-icon">✅</div>
+        <div class="stat-info">
+          <span class="stat-value">{{ stats.routing.TRUST }}</span>
+          <span class="stat-label">TRUST</span>
+        </div>
+      </div>
+      <div class="stat-card data">
+        <div class="stat-icon">📊</div>
+        <div class="stat-info">
+          <span class="stat-value">{{ stats.routing.DATA }}</span>
+          <span class="stat-label">DATA</span>
+        </div>
+      </div>
+      <div class="stat-card review">
+        <div class="stat-icon">👁️</div>
+        <div class="stat-info">
+          <span class="stat-value">{{ stats.routing.REVIEW }}</span>
+          <span class="stat-label">REVIEW</span>
+        </div>
+      </div>
+      <div class="stat-card abstain">
+        <div class="stat-icon">⚠️</div>
+        <div class="stat-info">
+          <span class="stat-value">{{ stats.routing.ABSTAIN }}</span>
+          <span class="stat-label">ABSTAIN</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">🎯</div>
+        <div class="stat-info">
+          <span class="stat-value">{{ stats.avg_confidence * 100 | number:'1.0-0' }}%</span>
+          <span class="stat-label">Avg. Confidence</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="filters-section">
+      <div class="filters-row">
+        <div class="filter-group search">
+          <input type="text" [(ngModel)]="filters.searchText" (input)="applyFilters()"
+                 placeholder="🔍 Search..." class="filter-input" />
+        </div>
+        
+        <div class="filter-group">
+          <select [(ngModel)]="filters.routingDecision" (change)="applyFilters()" class="filter-select">
+            <option value="all">All routings</option>
+            <option *ngFor="let decision of routingDecisions" [value]="decision" [hidden]="decision === 'all'">
+              {{ getRoutingIcon(decision) }} {{ decision }}
+            </option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <select [(ngModel)]="filters.model" (change)="applyFilters()" class="filter-select">
+            <option value="all">All models</option>
+            <option *ngFor="let model of models" [value]="model">{{ model }}</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <select [(ngModel)]="filters.dataset" (change)="applyFilters()" class="filter-select">
+            <option value="all">All datasets</option>
+            <option *ngFor="let dataset of datasets" [value]="dataset">{{ dataset }}</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="filters-row">
+        <button class="btn-reset" (click)="resetFilters()">🔄 Reset</button>
+      </div>
+    </div>
+
+    <div class="table-container" *ngIf="!isLoading; else loading">
+      <table class="history-table">
+        <thead>
+          <tr>
+            <th style="width:40px">
+              <input type="checkbox" [checked]="selectAll" (change)="toggleSelectAll()" />
+            </th>
+            <th style="width:60px" (click)="toggleSort('analyse_id')"># ↕</th>
+            <th>Text</th>
+            <th style="width:120px" (click)="toggleSort('prediction_label')">Prediction ↕</th>
+            <th style="width:100px" (click)="toggleSort('confidence')">Confidence ↕</th>
+            <th style="width:100px" (click)="toggleSort('epistemic')">EU ↕</th>
+            <th style="width:100px" (click)="toggleSort('aleatoric')">AU ↕</th>
+            <th style="width:100px">Routing</th>
+            <th style="width:80px">Details</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of displayedData" [class.expanded]="showDetails[item.analyse_id]">
+            <td>
+              <input type="checkbox" [checked]="selectedItems.has(item.analyse_id)" 
+                     (change)="toggleSelect(item.analyse_id)" />
+            </td>
+            <td>{{ item.analyse_id }}</td>
+            <td class="text-cell">
+              <div class="text-preview">{{ item.input_text | slice:0:80 }}{{ item.input_text.length > 80 ? '...' : '' }}</div>
+            </td>
+            <td>
+              <span class="prediction-badge" 
+                    [class.positive]="item.prediction?.label === 'POSITIVE'"
+                    [class.negative]="item.prediction?.label === 'NEGATIVE'">
+                {{ item.prediction?.label || 'N/A' }}
+              </span>
+            </td>
+            <td>
+              <span class="confidence" [style.color]="getConfidenceColor(item.prediction?.confidence || 0)">
+                {{ (item.prediction?.confidence || 0) * 100 | number:'1.0-0' }}%
+              </span>
+            </td>
+            <td>{{ item.prediction?.epistemic | number:'1.6-6' }}</td>
+            <td>{{ item.prediction?.aleatoric | number:'1.4-4' }}</td>
+            <td>
+              <span class="routing-badge" 
+                    [style.background]="getRoutingBgColor(item.routing_decision)"
+                    [style.color]="getRoutingColor(item.routing_decision)">
+                {{ getRoutingIcon(item.routing_decision) }} {{ item.routing_decision }}
+              </span>
+            </td>
+            <td>
+              <button class="btn-details" (click)="toggleDetails(item.analyse_id)">
+                {{ showDetails[item.analyse_id] ? '▲' : '▼' }}
+              </button>
+            </td>
+          </tr>
+          <tr *ngIf="displayedData.length === 0">
+            <td colspan="9" class="empty-state">
+              <span>📭 No predictions found</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pagination-section">
+      <div class="pagination-info">
+        Showing {{ (currentPage - 1) * itemsPerPage + 1 }} to 
+        {{ Math.min(currentPage * itemsPerPage, totalItems) }} 
+        of {{ totalItems }} results
+      </div>
+      <div class="pagination-controls">
+        <select [(ngModel)]="itemsPerPage" (change)="changePageSize(itemsPerPage)" class="page-size-select">
+          <option value="5">5</option>
+          <option value="10">10</option>
+          <option value="20">20</option>
+          <option value="50">50</option>
+        </select>
+        <button class="page-btn" (click)="previousPage()" [disabled]="currentPage === 1">◀</button>
+        <span class="page-info">{{ currentPage }} / {{ totalPages }}</span>
+        <button class="page-btn" (click)="nextPage()" [disabled]="currentPage === totalPages">▶</button>
+      </div>
+    </div>
+
+    <div *ngFor="let item of displayedData" 
+         class="details-panel" 
+         [hidden]="!showDetails[item.analyse_id]">
+      <div class="details-content">
+        <div class="details-row">
+          <div class="detail-item">
+            <span class="detail-label">Full text :</span>
+            <span class="detail-value">{{ item.input_text }}</span>
+          </div>
+        </div>
+        
+        <div class="details-row">
+          <div class="detail-item">
+            <span class="detail-label">Model :</span>
+            <span class="detail-value">{{ item.model || 'N/A' }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Dataset :</span>
+            <span class="detail-value">{{ item.dataset || 'N/A' }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Heads :</span>
+            <span class="detail-value">{{ item.n_heads || 'N/A' }}</span>
+          </div>
+        </div>
+
+        <div class="details-row">
+          <div class="detail-item">
+            <span class="detail-label">Date :</span>
+            <span class="detail-value">{{ formatDate(item.created_at) }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <ng-template #loading>
+      <div class="loading-container">
+        <div class="spinner"></div>
+        <p>Loading data...</p>
+      </div>
+    </ng-template>
+
+  </div>
+</div>

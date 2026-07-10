@@ -9,11 +9,18 @@ import { AppComponent } from './app.component';
 import { TextSubmissionInterfaceComponent } 
 from './components/text-submission-interface/text-submission-interface.component';
 import { HttpClientModule } from '@angular/common/http';
+import { HistoryComponent } from './components/history/history.component';
+import { AdminComponent } from './components/admin/admin.component';
+import { HeaderComponent } from './components/header/header.component';
+
 
 @NgModule({
   declarations: [
     AppComponent,
     TextSubmissionInterfaceComponent,
+    HistoryComponent,
+    AdminComponent,
+    HeaderComponent
   ],
   imports: [
     BrowserModule,
@@ -21,7 +28,8 @@ import { HttpClientModule } from '@angular/common/http';
     FormsModule,
     ReactiveFormsModule,
     CommonModule,
-    HttpClientModule
+    HttpClientModule,
+    
   ],
   providers: [],
   bootstrap: [AppComponent]

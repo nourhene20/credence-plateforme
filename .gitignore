@@ -49,4 +49,6 @@ credence-backend-only
 test.py
 credence_model/__pycache__/
 __pycache__/
+database.py
+test_connection.py
 

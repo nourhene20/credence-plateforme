@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
+import { environment } from '../../../environments/environment';
 
 export interface ModelInfo {
   name: string;
@@ -8,10 +9,8 @@ export interface ModelInfo {
   params: string;
   speed: string;
   type: 'encoder' | 'llm';
-  hidden_size?: number;
-  max_length?: number;
-  recommended_for: string[];
-  huggingface_id?: string;
+  model_id?: number;
+  hugging_face_id?: string;
 }
 
 export interface DatasetInfo {
@@ -22,165 +21,85 @@ export interface DatasetInfo {
   num_classes: number;
   class_names: string[];
   has_concepts: boolean;
-  num_concepts: number;
   concept_names: string[];
-  has_multi_annotator: boolean;
-  train_size: number;
-  val_size: number;
-  test_size: number;
-  language: string;
-  source: string;
-  year: number;
-  sample: string;
+  task_id?: number;
+  dataset_id?: number;
 }
 
 export interface TaskInfo {
   name: string;
   icon: string;
-  color: string;
-  description: string;
+  task_id?: number;
 }
 
 @Injectable({ providedIn: 'root' })
 export class ConfigService {
+  private apiUrl = environment.apiUrl;
   private config: any = null;
 
   constructor(private http: HttpClient) {}
 
-  async loadConfig() {
-    if (this.config) return this.config;
+  async loadConfig(): Promise<void> {
     try {
+      console.log(' Chargement de la configuration depuis la base de données...');
       this.config = await firstValueFrom(
-        this.http.get('/assets/config/datasets-models.json')
+        this.http.get(`${this.apiUrl}/config/all`)
       );
+      console.log(' Configuration chargée depuis la base de données');
+      console.log(` ${Object.keys(this.config.models).length} modèles, ${Object.keys(this.config.datasets).length} datasets, ${Object.keys(this.config.tasks).length} tâches`);
     } catch (error) {
-      console.error('Could not load config file, using defaults');
-      this.config = this.getDefaultConfig();
+      console.error(' Erreur chargement configuration depuis la base:', error);
     }
-    return this.config;
   }
 
-  private getDefaultConfig() {
-    return {
-      models: {
-        'distilbert-base-uncased': {
-          name: 'DistilBERT Base',
-          description: 'Version distillée de BERT, 40% plus légère et 60% plus rapide.',
-          params: '66M',
-          speed: '⚡ Très rapide',
-          type: 'encoder',
-          recommended_for: ['sentiment', 'toxicity']
-        },
-        'bert-base-uncased': {
-          name: 'BERT Base',
-          description: 'Modèle transformer original de Google.',
-          params: '110M',
-          speed: '🚀 Rapide',
-          type: 'encoder',
-          recommended_for: ['sentiment', 'toxicity', 'emotion', 'nli']
-        },
-        'roberta-base': {
-          name: 'RoBERTa Base',
-          description: 'Optimisation de BERT avec plus de données.',
-          params: '125M',
-          speed: '🚀 Rapide',
-          type: 'encoder',
-          recommended_for: ['sentiment', 'toxicity', 'emotion', 'nli']
-        },
-        'answerdotai/ModernBERT-base': {
-          name: 'ModernBERT Base',
-          description: 'Dernier modèle encoder SOTA avec contexte de 8192 tokens.',
-          params: '139M',
-          speed: '⚡ Très rapide',
-          type: 'encoder',
-          recommended_for: ['sentiment', 'toxicity', 'emotion', 'nli']
-        },
-        'meta-llama/Llama-3.2-3B': {
-          name: 'Llama 3.2 3B',
-          description: 'LLM efficace de Meta avec bon compromis performance/taille.',
-          params: '3B',
-          speed: '🚀 Rapide',
-          type: 'llm',
-          recommended_for: ['sentiment', 'toxicity', 'nli']
-        },
-        'Qwen/Qwen2.5-3B': {
-          name: 'Qwen 2.5 3B',
-          description: 'LLM multilingue efficace d\'Alibaba.',
-          params: '3B',
-          speed: '🚀 Rapide',
-          type: 'llm',
-          recommended_for: ['sentiment', 'toxicity', 'nli']
-        }
-      },
-      datasets: {
-        'cebab': {
-          name: 'CEBaB',
-          description: 'Critiques de restaurants avec annotations multi-aspects.',
-          icon: '🍽️',
-          task: 'sentiment',
-          num_classes: 3,
-          class_names: ['negative', 'neutral', 'positive'],
-          has_concepts: true,
-          num_concepts: 4,
-          concept_names: ['food', 'service', 'ambiance', 'noise'],
-          has_multi_annotator: true,
-          train_size: 11967,
-          val_size: 1000,
-          test_size: 1000,
-          language: 'en',
-          source: 'CEBaB/CEBaB',
-          year: 2022,
-          sample: 'The food was amazing but the service was slow.'
-        },
-        'sst2': {
-          name: 'SST-2',
-          description: 'Stanford Sentiment Treebank binaire.',
-          icon: '🎬',
-          task: 'sentiment',
-          num_classes: 2,
-          class_names: ['negative', 'positive'],
-          has_concepts: false,
-          num_concepts: 0,
-          concept_names: [],
-          has_multi_annotator: false,
-          train_size: 67349,
-          val_size: 872,
-          test_size: 1821,
-          language: 'en',
-          source: 'glue/sst2',
-          year: 2013,
-          sample: 'A brilliant and moving film.'
-        }
-      },
-      tasks: {
-        'sentiment': { name: 'Sentiment Analysis', icon: '😊', color: '#10b981', description: '' },
-        'toxicity': { name: 'Toxicity Detection', icon: '⚠️', color: '#ef4444', description: '' },
-        'emotion': { name: 'Emotion Recognition', icon: '😢', color: '#f59e0b', description: '' },
-        'nli': { name: 'Natural Language Inference', icon: '🔍', color: '#3b82f6', description: '' }
-      }
-    };
-  }
-
-  getModel(modelKey: string): ModelInfo | null {
-    return this.config?.models[modelKey] || null;
-  }
 
   getModelList(): { key: string; info: ModelInfo }[] {
-    if (!this.config) return [];
-    return Object.entries(this.config.models).map(([key, info]) => ({ key, info: info as ModelInfo }));
+    if (!this.config?.models) return [];
+    return Object.entries(this.config.models).map(([key, info]: any) => ({
+      key,
+      info: info as ModelInfo,
+    }));
   }
 
-  getDataset(datasetKey: string): DatasetInfo | null {
-    return this.config?.datasets[datasetKey] || null;
+  
+  getModel(key: string): ModelInfo | null {
+    return this.config?.models?.[key] || null;
   }
 
+ 
   getDatasetList(): { key: string; info: DatasetInfo }[] {
-    if (!this.config) return [];
-    return Object.entries(this.config.datasets).map(([key, info]) => ({ key, info: info as DatasetInfo }));
+    if (!this.config?.datasets) return [];
+    return Object.entries(this.config.datasets).map(([key, info]: any) => ({
+      key,
+      info: info as DatasetInfo,
+    }));
   }
+
+ 
+  getDataset(key: string): DatasetInfo | null {
+    return this.config?.datasets?.[key] || null;
+  }
+
 
   getTaskList(): { key: string; info: TaskInfo }[] {
-    if (!this.config) return [];
-    return Object.entries(this.config.tasks).map(([key, info]) => ({ key, info: info as TaskInfo }));
+    if (!this.config?.tasks) return [];
+    return Object.entries(this.config.tasks).map(([key, info]: any) => ({
+      key,
+      info: info as TaskInfo,
+    }));
   }
+
+  async getAvailableHeads(encoder: string, dataset: string): Promise<number[]> {
+  try {
+    const result = await firstValueFrom(
+      this.http.get(`${this.apiUrl}/config/available-heads`, {
+        params: { encoder, dataset }
+      })
+    );
+    return (result as any).heads || [];
+  } catch (error) {
+    console.error(' Erreur chargement heads:', error);
+    return [];
+  }
+}
 }

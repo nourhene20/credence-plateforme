@@ -1,17 +1,18 @@
 import { Component, OnInit, OnDestroy, AfterViewInit } from '@angular/core';
 import { Router } from '@angular/router';
+import { HttpClient } from '@angular/common/http';
 import { Chart, registerables } from 'chart.js';
 import {
   CredenceService,
   PredictionResult,
 } from '../../services/credence.service';
-/*import { AuthService, User } from '../shared/auth.service';*/
 import {
   ConfigService,
   ModelInfo,
   DatasetInfo,
   TaskInfo,
 } from '../../services/config.service';
+import { environment } from 'environments/environment';
 
 Chart.register(...registerables);
 
@@ -49,7 +50,6 @@ export class TextSubmissionInterfaceComponent
   thresholdAle: number = 0.5522;
   epiStatus: string = '';
   aleStatus: string = '';
-  /*currentUser: User | null = null;*/
   modelType: 'encoder' | 'llm' = 'encoder';
   private conceptHistogram: Chart | null = null;
   private euAccuracyChart: Chart | null = null;
@@ -76,7 +76,7 @@ export class TextSubmissionInterfaceComponent
   private headsPerConceptChart: Chart | null = null;
   private snliProbChart: Chart | null = null;
   private snliHeadsChart: Chart | null = null;
-  availableCombinations: AvailableCombination[] = [];
+  // availableCombinations: AvailableCombination[] = [];
   availableHeads: number[] = [];
   selectedNHeads: number = 5;
   noCheckpointAvailable: boolean = false;
@@ -89,23 +89,18 @@ export class TextSubmissionInterfaceComponent
 
   constructor(
     private credenceService: CredenceService,
-    /*private authService: AuthService,*/
     private router: Router,
     private configService: ConfigService,
+    private http: HttpClient,
   ) {}
 
   /*Initializes component, loads configuration */
 
   ngOnInit() {
-    /*this.currentUser = this.authService.getCurrentUser();
-    if (!this.currentUser) {
-      this.router.navigate(['/login']);
-    }*/
-    this.loadAvailableCombinations();
     this.loadConfig();
   }
 
-  /** Initializes charts after view is rendered */
+  /*Initializes charts after view is rendered */
 
   ngAfterViewInit() {
     setTimeout(() => {
@@ -115,7 +110,7 @@ export class TextSubmissionInterfaceComponent
     }, 500);
   }
 
-  /** Cleans up chart instances to prevent memory leaks */
+  /*Cleans up chart instances to prevent memory leaks */
 
   ngOnDestroy() {
     if (this.scatterChart) {
@@ -146,52 +141,53 @@ export class TextSubmissionInterfaceComponent
 
   /* Loads models, datasets and tasks from config service */
   async loadConfig() {
-    try {
-      await this.configService.loadConfig();
-      const allModels = this.configService.getModelList();
-      this.encoderModels = allModels.filter((m) => m.info.type === 'encoder');
-      this.llmModels = allModels.filter((m) => m.info.type === 'llm');
-      this.filteredModels = [...this.encoderModels];
-      this.selectedModel = this.filteredModels[0]?.key || '';
-      this.datasets = this.configService.getDatasetList();
-      this.filteredDatasets = [...this.datasets];
-      this.selectedDataset = this.datasets[0]?.key || '';
-      this.tasksList = this.configService.getTaskList();
-      this.buildDatasetGroups();
-      this.updateCurrentModelInfo();
-      this.updateCurrentDatasetInfo();
-      this.updateAvailableHeads();
-      console.log('Configuration loaded:', {
-        encoderModels: this.encoderModels.length,
-        llmModels: this.llmModels.length,
-        datasets: this.datasets.length,
-      });
-    } catch (error) {
-      console.error('Error loading configuration:', error);
-      this.encoderModels = [];
-      this.llmModels = [];
-      this.datasets = [];
-      this.tasksList = [];
-    }
+  try {
+    await this.configService.loadConfig();
+    
+    const allModels = this.configService.getModelList();
+    this.encoderModels = allModels.filter((m) => m.info.type === 'encoder');
+    this.llmModels = allModels.filter((m) => m.info.type === 'llm');
+    this.filteredModels = [...this.encoderModels];
+    this.selectedModel = this.filteredModels[0]?.key || '';
+    
+    this.datasets = this.configService.getDatasetList();
+    this.filteredDatasets = [...this.datasets];
+    this.selectedDataset = this.datasets[0]?.key || '';
+    
+    this.tasksList = this.configService.getTaskList();
+    
+    this.buildDatasetGroups();
+    this.updateCurrentModelInfo();
+    this.updateCurrentDatasetInfo();
+    await this.loadAvailableHeads();  
+    console.log(' Configuration chargée avec succès !');
+    console.log(` ${this.encoderModels.length} encoders, ${this.llmModels.length} LLMs, ${this.datasets.length} datasets`);
+  } catch (error) {
+    console.error(' Erreur chargement configuration:', error);
+    this.encoderModels = [];
+    this.llmModels = [];
+    this.datasets = [];
+    this.tasksList = [];
   }
-
+}
   /* Switches between Encoder and LLM model types */
 
-  setModelType(type: 'encoder' | 'llm') {
-    this.modelType = type;
-    this.filteredModels =
-      type === 'encoder' ? [...this.encoderModels] : [...this.llmModels];
+ setModelType(type: 'encoder' | 'llm') {
+  this.modelType = type;
+  this.filteredModels = type === 'encoder' ? [...this.encoderModels] : [...this.llmModels];
+  if (this.filteredModels.length > 0) {
     this.selectedModel = this.filteredModels[0]?.key || '';
-    this.updateCurrentModelInfo();
-    this.updateAvailableHeads();
   }
+  this.updateCurrentModelInfo();
+  this.loadAvailableHeads();  
+}
 
   /* Updates current model info when selection changes */
   onModelChange() {
-    this.updateCurrentModelInfo();
-    this.updateAvailableHeads();
-    console.log('Model selected:', this.selectedModel);
-  }
+  this.updateCurrentModelInfo();
+  console.log('Modèle sélectionné:', this.selectedModel);
+  this.loadAvailableHeads();  // ← Charger heads dynamiquement
+}
 
   /* Updates displayed model information */
 
@@ -263,11 +259,11 @@ export class TextSubmissionInterfaceComponent
 
   /* Handles dataset selection change */
 
-  onDatasetChange() {
-    this.updateCurrentDatasetInfo();
-    this.updateAvailableHeads();
-    console.log('Dataset selected:', this.selectedDataset);
-  }
+onDatasetChange() {
+  this.updateCurrentDatasetInfo();  
+  console.log('Dataset sélectionné:', this.selectedDataset);
+  this.loadAvailableHeads();
+}
 
   /* Updates current dataset information */
 
@@ -321,10 +317,7 @@ export class TextSubmissionInterfaceComponent
     return colors[task] || '#6b7280';
   }
 
-  /* logout() {
-    this.authService.logout();
-    this.router.navigate(['/login']);
-  }*/
+
 
   /* Switches between single and batch analysis mode */
 
@@ -488,6 +481,7 @@ export class TextSubmissionInterfaceComponent
         next: (response) => {
           this.result = response;
           this.isLoading = false;
+      this.saveAnalyse(response);
 
           setTimeout(() => this.addPointAndRender(response), 50);
 
@@ -1096,103 +1090,62 @@ export class TextSubmissionInterfaceComponent
   validateTid8Format(text: string): boolean {
     return text.includes('[SEP]');
   }
-  loadAvailableCombinations() {
-    this.availableCombinations = [
-      // ModernBERT
-      {
-        encoder: 'answerdotai/ModernBERT-base',
-        dataset: 'hatexplain',
-        n_heads: 5,
-      },
-      {
-        encoder: 'answerdotai/ModernBERT-base',
-        dataset: 'hatexplain',
-        n_heads: 7,
-      },
-
-      // DeBERTa-v3
-      {
-        encoder: 'microsoft/deberta-v3-base',
-        dataset: 'hatexplain',
-        n_heads: 3,
-      },
-      {
-        encoder: 'microsoft/deberta-v3-base',
-        dataset: 'hatexplain',
-        n_heads: 5,
-      },
-      {
-        encoder: 'microsoft/deberta-v3-base',
-        dataset: 'hatexplain',
-        n_heads: 7,
-      },
-      {
-        encoder: 'microsoft/deberta-v3-base',
-        dataset: 'hatexplain',
-        n_heads: 10,
-      },
-      {
-        encoder: 'microsoft/deberta-v3-base',
-        dataset: 'hatexplain',
-        n_heads: 15,
-      },
-
-      // RoBERTa — ablation
-      { encoder: 'roberta-base', dataset: 'hatexplain', n_heads: 1 },
-      { encoder: 'roberta-base', dataset: 'hatexplain', n_heads: 3 },
-      { encoder: 'roberta-base', dataset: 'hatexplain', n_heads: 5 },
-      { encoder: 'roberta-base', dataset: 'hatexplain', n_heads: 7 },
-      { encoder: 'roberta-base', dataset: 'hatexplain', n_heads: 10 },
-      { encoder: 'roberta-base', dataset: 'hatexplain', n_heads: 15 },
-
-      // RoBERTa — datasets
-      { encoder: 'roberta-base', dataset: 'cebab', n_heads: 5 },
-      { encoder: 'roberta-base', dataset: 'goemotions', n_heads: 5 },
-
-      // Phi-3
-      {
-        encoder: 'microsoft/phi-3-mini-4k-instruct',
-        dataset: 'cebab',
-        n_heads: 5,
-      },
-      {
-        encoder: 'microsoft/phi-3-mini-4k-instruct',
-        dataset: 'goemotions',
-        n_heads: 5,
-      },
-      {
-        encoder: 'microsoft/phi-3-mini-4k-instruct',
-        dataset: 'hatexplain',
-        n_heads: 5,
-      },
-    ];
-    console.log(
-      ' Available combinations loaded:',
-      this.availableCombinations.length,
+  async loadAvailableHeads() {
+  try {
+    console.log(`Recherche des heads disponibles pour ${this.selectedModel} + ${this.selectedDataset}...`);
+    
+    const heads = await this.configService.getAvailableHeads(
+      this.selectedModel,
+      this.selectedDataset
     );
-    console.log(' Sample:', this.availableCombinations.slice(0, 3));
-
-    this.updateAvailableHeads();
-  }
-  updateAvailableHeads() {
-    this.availableHeads = this.availableCombinations
-      .filter(
-        (c) =>
-          c.encoder === this.selectedModel &&
-          c.dataset === this.selectedDataset,
-      )
-      .map((c) => c.n_heads)
-      .sort((a, b) => a - b);
-
+    
+    this.availableHeads = heads.sort((a, b) => a - b);
     this.noCheckpointAvailable = this.availableHeads.length === 0;
-
-    console.log(' Available heads:', this.availableHeads);
-    console.log(' No checkpoint:', this.noCheckpointAvailable);
-
+    
     if (this.availableHeads.includes(5)) {
       this.selectedNHeads = 5;
     } else if (this.availableHeads.length > 0) {
       this.selectedNHeads = this.availableHeads[0];
     }
+    
+    console.log(` ${this.availableHeads.length} heads disponibles:`, this.availableHeads);
+    
+  } catch (error) {
+    console.error(' Erreur chargement heads:', error);
+    this.availableHeads = [];
+    this.noCheckpointAvailable = true;
   }
+}
+  
+ saveAnalyse(response: PredictionResult) {
+  const payload = {
+    text: this.inputText,
+    encoder: this.selectedModel,
+    dataset: this.selectedDataset,
+    n_heads: this.selectedNHeads,
+    mode: this.mode,
+    threshold_epi: this.thresholdEpi,
+    threshold_ale: this.thresholdAle,
+    routing_decision: this.routingDecision,
+    prediction_label: response.prediction,
+    confidence: response.confidence,
+    epistemic: response.epistemic,
+    aleatoric: response.aleatoric || 0,
+    probabilities: response.probabilities || null,
+    heads_predictions: response.heads_predictions || null,
+    concepts: response.concepts || null,
+    concept_uncertainties: response.concept_uncertainties || null,
+    aleatoric_by_concept: response.aleatoric_by_concept || null,
+  };
+
+  this.http.post(`${environment.apiUrl}/analyse/save`, payload)
+    .subscribe({
+      next: (result: any) => {
+        console.log(` Analyse sauvegardée (ID: ${result.analyse_id})`);
+      },
+      error: (err: any) => {
+        console.error(' Erreur sauvegarde:', err);
+      }
+    });
+}
 }

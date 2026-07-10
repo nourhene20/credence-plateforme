@@ -1,21 +1,14 @@
 <div class="research-container">
-  <div class="header">
-    <div class="logo">
-      <span class="logo-icon">🧠</span>
-      <span class="logo-text">CREDENCE</span>
-    </div>
-    <p class="subtitle">Decompose epistemic and aleatoric uncertainty</p>
-  </div>
-
+  <app-header></app-header>
   <div class="main-card" [class.loading]="isLoading">
 
     <!-- Mode Toggle -->
     <div class="mode-toggle">
       <button class="mode-btn" [class.active]="mode === 'single'" (click)="setMode('single')">
-        📝 Single Text
+        🖊️ Single Text
       </button>
       <button class="mode-btn" [class.active]="mode === 'batch'" (click)="setMode('batch')">
-        📊 Batch txt
+        📑 Batch txt
       </button>
     </div>
 
@@ -215,7 +208,7 @@
           <div class="slider-card">
             <div class="slider-header">
               <div class="slider-title">
-                <span class="slider-icon">📊</span>
+                <span class="slider-icon">🧩</span>
                 <span class="slider-name">Epistemic (EU)</span>
               </div>
               <div class="slider-value-container">
@@ -339,7 +332,7 @@
           </div>
         </div>
 
-        <!-- Scatter Plot Section - ALWAYS visible -->
+        <!-- Scatter Plot Section  -->
         <div class="scatter-section">
           <div class="section-header">
             <h3>📊 Uncertainty Decomposition</h3>
@@ -391,7 +384,7 @@
           </div>
         </div>
 
-        <!-- CONCEPTS ANALYSIS - ONLY IF CONCEPTS EXIST  -->
+        <!-- CONCEPTS ANALYSIS  -->
         <div class="concepts" *ngIf="hasConcepts()">
           <div class="section-title">📋 Concept Analysis</div>
           <div class="concept-list">
@@ -419,7 +412,7 @@
           </div>
         </div>
 
-        <!--  EU vs ACCURACY CURVE - ONLY IF CONCEPTS EXIST  -->
+        <!--  EU vs ACCURACY CURVE  -->
         <div class="eu-accuracy-section" *ngIf="hasConcepts()">
           <div class="section-title">📉 EU vs Accuracy Relationship</div>
           <div class="curve-container">
@@ -427,7 +420,7 @@
           </div>
         </div>
 
-        <!--  PER-HEAD CONCEPT PREDICTIONS - ONLY IF CONCEPTS EXIST  -->
+        <!--  PER-HEAD CONCEPT PREDICTIONS  -->
         <div class="heads-section" *ngIf="hasConcepts() && result.heads_predictions">
           <div class="section-title">📈 Per-Head Concept Predictions</div>
           <p class="section-description">

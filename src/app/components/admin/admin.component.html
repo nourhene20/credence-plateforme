@@ -1,0 +1,439 @@
+<div class="admin-container">
+
+    <app-header></app-header>
+
+    <div class="main-card">
+        <div class="admin-tabs">
+            <button class="tab-btn" [class.active]="activeTab === 'tasks'" (click)="setActiveTab('tasks')">
+                📋 Tasks <span class="badge">{{ tasks.length }}</span>
+            </button>
+            <button class="tab-btn" [class.active]="activeTab === 'models'" (click)="setActiveTab('models')">
+                🤖 Models <span class="badge">{{ models.length }}</span>
+            </button>
+            <button class="tab-btn" [class.active]="activeTab === 'datasets'" (click)="setActiveTab('datasets')">
+                📊 Datasets <span class="badge">{{ datasets.length }}</span>
+            </button>
+            <button class="tab-btn" [class.active]="activeTab === 'checkpoints'" (click)="setActiveTab('checkpoints')">
+                🔗 Checkpoints <span class="badge">{{ checkpoints.length }}</span>
+            </button>
+        </div>
+
+        <!-- ─── TASKS ────────────────────────────────────────────────── -->
+        <div class="tab-content" *ngIf="activeTab === 'tasks'">
+            <div class="tab-header">
+                <h2>📋 Manage Tasks</h2>
+                <button class="btn-add" (click)="openAddForm()">
+                    {{ showAddForm ? '✕ Close' : '➕ Add' }}
+                </button>
+            </div>
+
+            <div class="form-panel" *ngIf="showAddForm || showEditForm">
+                <h3>{{ showEditForm ? '✏️ Edit Task' : '➕ New Task' }}</h3>
+                <form [formGroup]="taskForm" (ngSubmit)="showEditForm ? updateTask() : addTask()">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Name *</label>
+                            <input formControlName="name" placeholder="e.g.: Sentiment Analysis" />
+                        </div>
+                        <div class="form-group">
+                            <label>Icon *</label>
+                            <div class="emoji-input-group">
+                                <div class="emoji-input-wrapper">
+                                    <input formControlName="icon" placeholder="e.g.: 😊" maxlength="2" readonly
+                                        (click)="toggleEmojiPicker('task')" class="emoji-input" />
+                                    <span class="emoji-preview">{{ taskForm.get('icon')?.value }}</span>
+                                </div>
+
+                                <div class="emoji-dropdown" *ngIf="showEmojiPicker === 'task'">
+                                    <div class="emoji-dropdown-header">
+                                        <span class="emoji-title">Select an emoji</span>
+                                        <button class="emoji-close" (click)="closeEmojiPicker()">✕</button>
+                                    </div>
+                                    <div class="emoji-dropdown-grid">
+                                        <span *ngFor="let emoji of allEmojis" (click)="selectEmoji(emoji, 'task')"
+                                            class="emoji-item">
+                                            {{ emoji }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn-submit" [disabled]="taskForm.invalid">
+                            {{ showEditForm ? '💾 Update' : '➕ Add' }}
+                        </button>
+                        <button type="button" class="btn-cancel"
+                            (click)="showAddForm=false; showEditForm=false; taskForm.reset()">
+                            Cancel
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="list-container">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th style="width:60px">ID</th>
+                            <th style="width:60px">Icon</th>
+                            <th>Name</th>
+                            <th style="width:120px">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr *ngFor="let task of tasks">
+                            <td>{{ task.task_id }}</td>
+                            <td class="icon-cell">{{ task.icon }}</td>
+                            <td><strong>{{ task.name }}</strong></td>
+                            <td>
+                                <button class="btn-edit" (click)="editTask(task)" title="Edit">✏️</button>
+                                <button class="btn-delete" (click)="deleteTask(task.task_id!)"
+                                    title="Delete">🗑️</button>
+                            </td>
+                        </tr>
+                        <tr *ngIf="tasks.length === 0">
+                            <td colspan="4" class="empty-state">No tasks</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ─── MODELS ────────────────────────────────────────────────── -->
+        <div class="tab-content" *ngIf="activeTab === 'models'">
+            <div class="tab-header">
+                <h2>🤖 Manage Models</h2>
+                <button class="btn-add" (click)="openAddForm()">
+                    {{ showAddForm ? '✕ Close' : '➕ Add' }}
+                </button>
+            </div>
+
+            <div class="form-panel" *ngIf="showAddForm || showEditForm">
+                <h3>{{ showEditForm ? '✏️ Edit Model' : '➕ New Model' }}</h3>
+                <form [formGroup]="modelForm" (ngSubmit)="showEditForm ? updateModel() : addModel()">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Name *</label>
+                            <input formControlName="name" placeholder="e.g.: RoBERTa Base" />
+                        </div>
+                        <div class="form-group">
+                            <label>Hugging Face ID *</label>
+                            <input formControlName="hugging_face_id" placeholder="e.g.: roberta-base" />
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group full">
+                            <label>Description *</label>
+                            <textarea formControlName="description" rows="2"
+                                placeholder="Model description..."></textarea>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Parameters *</label>
+                            <input formControlName="params" placeholder="e.g.: 125M" />
+                        </div>
+                        <div class="form-group">
+                            <label>Speed *</label>
+                            <select formControlName="speed">
+                                <option *ngFor="let s of speedOptions" [value]="s">{{ getSpeedIcon(s) }} {{ s }}
+                                </option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Type *</label>
+                            <select formControlName="type">
+                                <option *ngFor="let t of typeOptions" [value]="t">{{ t }}</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn-submit" [disabled]="modelForm.invalid">
+                            {{ showEditForm ? '💾 Update' : '➕ Add' }}
+                        </button>
+                        <button type="button" class="btn-cancel"
+                            (click)="showAddForm=false; showEditForm=false; modelForm.reset()">
+                            Cancel
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="list-container">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th style="width:50px">ID</th>
+                            <th>Name</th>
+                            <th style="width:90px">Type</th>
+                            <th style="width:80px">Params</th>
+                            <th>Hugging Face ID</th>
+                            <th style="width:120px">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr *ngFor="let model of models">
+                            <td>{{ model.model_id }}</td>
+                            <td><strong>{{ model.name }}</strong></td>
+                            <td>
+                                <span class="badge-type" [class.encoder]="model.type === 'encoder'">
+                                    {{ model.type }}
+                                </span>
+                            </td>
+                            <td>{{ model.params }}</td>
+                            <td><code>{{ model.hugging_face_id }}</code></td>
+                            <td>
+                                <button class="btn-edit" (click)="editModel(model)" title="Edit">✏️</button>
+                                <button class="btn-delete" (click)="deleteModel(model.model_id!)"
+                                    title="Delete">🗑️</button>
+                            </td>
+                        </tr>
+                        <tr *ngIf="models.length === 0">
+                            <td colspan="6" class="empty-state">No models</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ─── DATASETS ────────────────────────────────────────────────── -->
+        <div class="tab-content" *ngIf="activeTab === 'datasets'">
+            <div class="tab-header">
+                <h2>📊 Manage Datasets</h2>
+                <button class="btn-add" (click)="openAddForm()">
+                    {{ showAddForm ? '✕ Close' : '➕ Add' }}
+                </button>
+            </div>
+
+            <div class="form-panel" *ngIf="showAddForm || showEditForm">
+                <h3>{{ showEditForm ? '✏️ Edit Dataset' : '➕ New Dataset' }}</h3>
+                <form [formGroup]="datasetForm" (ngSubmit)="showEditForm ? updateDataset() : addDataset()">
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Icon *</label>
+                            <div class="emoji-input-group">
+                                <div class="emoji-input-wrapper">
+                                    <input formControlName="icon" placeholder="e.g.: 🍽️" maxlength="2" readonly
+                                        (click)="toggleEmojiPicker('dataset')" class="emoji-input" />
+                                    <span class="emoji-preview">{{ datasetForm.get('icon')?.value }}</span>
+                                </div>
+
+                                <div class="emoji-dropdown" *ngIf="showEmojiPicker === 'dataset'">
+                                    <div class="emoji-dropdown-header">
+                                        <span class="emoji-title">Select an emoji</span>
+                                        <button class="emoji-close" (click)="closeEmojiPicker()">✕</button>
+                                    </div>
+                                    <div class="emoji-dropdown-grid">
+                                        <span *ngFor="let emoji of allEmojis" (click)="selectEmoji(emoji, 'dataset')"
+                                            class="emoji-item">
+                                            {{ emoji }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group full">
+                            <label>Name *</label>
+                            <input formControlName="name" placeholder="e.g.: CEBaB" />
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group full">
+                            <label>Description *</label>
+                            <textarea formControlName="description" rows="2"
+                                placeholder="Dataset description..."></textarea>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Number of classes *</label>
+                            <input formControlName="num_classes" type="number" min="1"
+                                (change)="generateClassFields()" />
+                        </div>
+                        <div class="form-group">
+                            <label>Associated task *</label>
+                            <select formControlName="task_id">
+                                <option *ngFor="let task of tasks" [value]="task.task_id">{{ task.icon }} {{ task.name
+                                    }}</option>
+                            </select>
+                        </div>
+                        <div class="form-group checkbox">
+                            <label>
+                                <input formControlName="has_concepts" type="checkbox" />
+                                Has concepts
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="form-row" *ngIf="datasetForm.get('has_concepts')?.value">
+                        <div class="form-group">
+                            <label>Number of concepts *</label>
+                            <input formControlName="num_concepts" type="number" min="0"
+                                (change)="generateConceptFields()" />
+                        </div>
+                    </div>
+
+                    <div class="form-row" *ngIf="classesArray.length > 0">
+                        <div class="form-group full">
+                            <label>🏷️ Classes</label>
+                            <div class="fields-grid">
+                                <div *ngFor="let cls of classesArray.controls; let i = index" class="field-item"
+                                    [formGroup]="$any(cls)">
+                                    <span class="field-index">Class {{ i }}</span>
+                                    <input formControlName="label_name" placeholder="e.g.: positive" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-row" *ngIf="conceptsArray.length > 0">
+                        <div class="form-group full">
+                            <label>🧠 Concepts</label>
+                            <div class="fields-grid">
+                                <div *ngFor="let concept of conceptsArray.controls; let i = index" class="field-item"
+                                    [formGroup]="$any(concept)">
+                                    <span class="field-index">Concept {{ i }}</span>
+                                    <input formControlName="concept_name" placeholder="e.g.: food" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn-submit" [disabled]="datasetForm.invalid">
+                            {{ showEditForm ? '💾 Update' : '➕ Add' }}
+                        </button>
+                        <button type="button" class="btn-cancel"
+                            (click)="showAddForm=false; showEditForm=false; datasetForm.reset(); classesArray.clear(); conceptsArray.clear()">
+                            Cancel
+                        </button>
+                    </div>
+                </form>
+            </div>
+            <div class="list-container">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th style="width:50px">ID</th>
+                            <th style="width:50px">Icon</th>
+                            <th>Name</th>
+                            <th>Description</th>
+                            <th style="width:80px">Classes</th>
+                            <th style="width:100px">Task</th>
+                            <th style="width:100px">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr *ngFor="let dataset of datasets">
+                            <td>{{ dataset.dataset_id }}</td>
+                            <td class="icon-cell">{{ dataset.icon }}</td>
+                            <td><strong>{{ dataset.name }}</strong></td>
+                            <td class="desc-cell">{{ dataset.description | slice:0:50 }}{{ dataset.description.length >
+                                50 ? '...' : '' }}</td>
+                            <td>{{ dataset.num_classes }}</td>
+                            <td>{{ getTaskName(dataset.task_id) }}</td>
+                            <td>
+                                <button class="btn-edit" (click)="editDataset(dataset)" title="Edit">✏️</button>
+                                <button class="btn-delete" (click)="deleteDataset(dataset.dataset_id!)"
+                                    title="Delete">🗑️</button>
+                            </td>
+                        </tr>
+                        <tr *ngIf="datasets.length === 0">
+                            <td colspan="7" class="empty-state">No datasets</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+
+        <!-- ─── CHECKPOINTS ────────────────────────────────────────────── -->
+        <div class="tab-content" *ngIf="activeTab === 'checkpoints'">
+            <div class="tab-header">
+                <h2>🔗 Manage Checkpoints</h2>
+                <button class="btn-add" (click)="openAddForm()">
+                    {{ showAddForm ? '✕ Close' : '➕ Add' }}
+                </button>
+            </div>
+
+            <div class="form-panel" *ngIf="showAddForm || showEditForm">
+                <h3>{{ showEditForm ? '✏️ Edit Checkpoint' : '➕ New Checkpoint' }}</h3>
+                <form [formGroup]="checkpointForm" (ngSubmit)="showEditForm ? updateCheckpoint() : addCheckpoint()">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Model *</label>
+                            <select formControlName="model_id">
+                                <option *ngFor="let model of models" [value]="model.model_id">{{ model.name }}</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Dataset *</label>
+                            <select formControlName="dataset_id">
+                                <option *ngFor="let dataset of datasets" [value]="dataset.dataset_id">{{ dataset.name }}
+                                </option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Number of heads *</label>
+                            <input formControlName="n_heads" type="number" min="1" />
+                        </div>
+                        <div class="form-group">
+                            <label>Repo ID *</label>
+                            <input formControlName="repo_id" placeholder="e.g.: tankiit/credence-roberta-cebab" />
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn-submit" [disabled]="checkpointForm.invalid">
+                            {{ showEditForm ? '💾 Update' : '➕ Add' }}
+                        </button>
+                        <button type="button" class="btn-cancel"
+                            (click)="showAddForm=false; showEditForm=false; checkpointForm.reset()">
+                            Cancel
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="list-container">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th style="width:50px">ID</th>
+                            <th>Model</th>
+                            <th>Dataset</th>
+                            <th style="width:80px">Heads</th>
+                            <th>Repo ID</th>
+                            <th style="width:120px">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr *ngFor="let checkpoint of checkpoints">
+                            <td>{{ checkpoint.checkpoint_id }}</td>
+                            <td>{{ getModelName(checkpoint.model_id) }}</td>
+                            <td>{{ getDatasetName(checkpoint.dataset_id) }}</td>
+                            <td><span class="head-badge">{{ checkpoint.n_heads }}</span></td>
+                            <td><code>{{ checkpoint.repo_id }}</code></td>
+                            <td>
+                                <button class="btn-edit" (click)="editCheckpoint(checkpoint)" title="Edit">✏️</button>
+                                <button class="btn-delete" (click)="deleteCheckpoint(checkpoint.checkpoint_id!)"
+                                    title="Delete">🗑️</button>
+                            </td>
+                        </tr>
+                        <tr *ngIf="checkpoints.length === 0">
+                            <td colspan="6" class="empty-state">No checkpoints</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</div>
