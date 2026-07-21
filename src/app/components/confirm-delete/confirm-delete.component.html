@@ -1,0 +1,19 @@
+<div class="delete-overlay" *ngIf="visible" (click)="close()">
+    <div class="delete-panel" (click)="$event.stopPropagation()">
+        <div class="delete-header">
+            <span class="delete-icon">⚠️</span>
+            <h3>{{ title }}</h3>
+            <button class="delete-close" (click)="close()">✕</button>
+        </div>
+        <div class="delete-body">
+            <p class="delete-question">{{ formattedQuestion }}</p>
+            <div class="cascade-message" *ngIf="cascadeMessage">
+                <p>{{ cascadeMessage }}</p>
+            </div>
+        </div>
+        <div class="delete-footer">
+            <button class="btn-cancel" (click)="close()">{{ cancelText }}</button>
+            <button class="btn-delete" (click)="onConfirm()">{{ confirmText }}</button>
+        </div>
+    </div>
+</div>

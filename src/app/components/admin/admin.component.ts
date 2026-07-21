@@ -1,6 +1,8 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, FormArray } from '@angular/forms';
-import { AdminService, Task, Model, Dataset, Checkpoint } from '../../services/admin.service';
+import { AdminService} from '../../services/admin.service';
+import { Task, Model, Dataset, Checkpoint } from '../../shared/models_interfaces';
+import { ConfirmDeleteComponent } from '../confirm-delete/confirm-delete.component';
 
 
 export const ALL_EMOJIS = [
@@ -24,7 +26,9 @@ export const ALL_EMOJIS = [
   styleUrls: ['./admin.component.scss']
 })
 export class AdminComponent implements OnInit {
-  
+  private pendingDelete: (() => void) | null = null;
+  isLoadingDetails: boolean = false;
+  selectedDatasetDetails: any = null;
   allEmojis = ALL_EMOJIS;
   showEmojiPicker: string | null = null;
   activeTab: 'tasks' | 'models' | 'datasets' | 'checkpoints' = 'tasks';
@@ -42,7 +46,7 @@ export class AdminComponent implements OnInit {
   checkpointForm!: FormGroup;
   speedOptions = ['fast', 'medium', 'slow'];
   typeOptions = ['encoder', 'llm'];
-  
+  @ViewChild('confirmDelete') confirmDeleteComponent!: ConfirmDeleteComponent;
   constructor(
     private adminService: AdminService,
     private fb: FormBuilder
@@ -140,23 +144,23 @@ export class AdminComponent implements OnInit {
   loadAllData() {
     this.isLoading = true;
     this.adminService.getTasks().subscribe({
-      next: (data) => { this.tasks = data; console.log(`${data.length} tâches chargées`); },
-      error: (err) => { console.error(' Erreur chargement tâches:', err); this.tasks = []; }
+      next: (data) => { this.tasks = data; /*console.log(`${data.length} tâches chargées`);*/ },
+      error: (err) => { /*console.error(' Erreur chargement tâches:', err);*/ this.tasks = []; }
     });
     
     this.adminService.getModels().subscribe({
-      next: (data) => { this.models = data; console.log(` ${data.length} modèles chargés`); },
-      error: (err) => { console.error(' Erreur chargement modèles:', err); this.models = []; }
+      next: (data) => { this.models = data; /*console.log(` ${data.length} modèles chargés`)*/; },
+      error: (err) => { /*console.error(' Erreur chargement modèles:', err); */this.models = []; }
     });
     
     this.adminService.getDatasets().subscribe({
       next: (data) => { this.datasets = data; console.log(` ${data.length} datasets chargés`); },
-      error: (err) => { console.error(' Erreur chargement datasets:', err); this.datasets = []; }
+      error: (err) => { /*console.error(' Erreur chargement datasets:', err);*/ this.datasets = []; }
     });
     
     this.adminService.getCheckpoints().subscribe({
-      next: (data) => { this.checkpoints = data; this.isLoading = false; console.log(` ${data.length} checkpoints chargés`); },
-      error: (err) => { console.error(' Erreur chargement checkpoints:', err); this.checkpoints = []; this.isLoading = false; }
+      next: (data) => { this.checkpoints = data; this.isLoading = false; /*console.log(` ${data.length} checkpoints chargés`); */},
+      error: (err) => { /*console.error(' Erreur chargement checkpoints:', err);*/ this.checkpoints = []; this.isLoading = false; }
     });
   }
   
@@ -200,7 +204,7 @@ export class AdminComponent implements OnInit {
     if (this.taskForm.invalid) return;
     this.adminService.createTask(this.taskForm.value).subscribe({
       next: () => { this.loadAllData(); this.taskForm.reset(); this.showAddForm = false; },
-      error: (err) => console.error(' Erreur création tâche:', err)
+      error: (err) => {}/*console.error(' Erreur création tâche:', err)*/
     });
   }
   
@@ -212,24 +216,36 @@ export class AdminComponent implements OnInit {
     if (this.taskForm.invalid || !this.editingId) return;
     this.adminService.updateTask(this.editingId, this.taskForm.value).subscribe({
       next: () => { this.loadAllData(); this.taskForm.reset(); this.showEditForm = false; this.editingId = null; },
-      error: (err) => console.error(' Erreur mise à jour tâche:', err)
+      error: (err) =>{}/* console.error(' Erreur mise à jour tâche:', err)*/
     });
   }
   
-  deleteTask(taskId: number) {
-    if (confirm('Supprimer cette tâche ?')) {
+ deleteTask(taskId: number) {
+    const task = this.tasks.find(t => t.task_id === taskId);
+    if (!task) return;
+
+    this.confirmDeleteComponent.itemName = task.name;
+    this.confirmDeleteComponent.itemType = 'task';
+    this.confirmDeleteComponent.question = 'Are you sure you want to delete the task "{{ itemName }}"?';
+    this.confirmDeleteComponent.message = 'This will permanently delete the task and all associated datasets and checkpoints.';
+    this.confirmDeleteComponent.visible = true;
+
+    this.pendingDelete = () => {
       this.adminService.deleteTask(taskId).subscribe({
-        next: () => this.loadAllData(),
-        error: (err) => console.error(' Erreur suppression tâche:', err)
+        next: () => {
+          this.loadAllData();
+          //console.log(` Task "${task.name}" deleted`);
+        },
+        error: (err) =>{} /*console.error(' Error deleting task:', err)*/
       });
-    }
+    };
   }
   
   addModel() {
     if (this.modelForm.invalid) return;
     this.adminService.createModel(this.modelForm.value).subscribe({
       next: () => { this.loadAllData(); this.modelForm.reset(); this.showAddForm = false; },
-      error: (err) => console.error(' Erreur création modèle:', err)
+      error: (err) =>{} /*console.error(' Erreur création modèle:', err)*/
     });
   }
   
@@ -241,17 +257,29 @@ export class AdminComponent implements OnInit {
     if (this.modelForm.invalid || !this.editingId) return;
     this.adminService.updateModel(this.editingId, this.modelForm.value).subscribe({
       next: () => { this.loadAllData(); this.modelForm.reset(); this.showEditForm = false; this.editingId = null; },
-      error: (err) => console.error(' Erreur mise à jour modèle:', err)
+      error: (err) =>{} /*console.error(' Erreur mise à jour modèle:', err)*/
     });
   }
   
-  deleteModel(modelId: number) {
-    if (confirm('Supprimer ce modèle ?')) {
+deleteModel(modelId: number) {
+    const model = this.models.find(m => m.model_id === modelId);
+    if (!model) return;
+
+    this.confirmDeleteComponent.itemName = model.name;
+    this.confirmDeleteComponent.itemType = 'model';
+    this.confirmDeleteComponent.question = 'Are you sure you want to delete the model "{{ itemName }}"?';
+    this.confirmDeleteComponent.message = ' This will permanently delete the model and all associated checkpoints.';
+    this.confirmDeleteComponent.visible = true;
+
+    this.pendingDelete = () => {
       this.adminService.deleteModel(modelId).subscribe({
-        next: () => this.loadAllData(),
-        error: (err) => console.error(' Erreur suppression modèle:', err)
+        next: () => {
+          this.loadAllData();
+          //console.log(` Model "${model.name}" deleted`);
+        },
+        error: (err) => {}/*console.error(' Error deleting model:', err)*/
       });
-    }
+    };
   }
   
 
@@ -278,7 +306,7 @@ export class AdminComponent implements OnInit {
       this.datasetForm.patchValue({ num_concepts: 0 });
       this.showAddForm = false;
     },
-    error: (err) => console.error(' Erreur création dataset:', err)
+    error: (err) => {}/*console.error(' Erreur création dataset:', err)*/
   });
 }
   editDataset(dataset: Dataset) {
@@ -311,24 +339,37 @@ export class AdminComponent implements OnInit {
         this.showEditForm = false;
         this.editingId = null;
       },
-      error: (err) => console.error(' Erreur mise à jour dataset:', err)
+      error: (err) =>{}/* console.error(' Erreur mise à jour dataset:', err)*/
     });
   }
   
-  deleteDataset(datasetId: number) {
-    if (confirm('Supprimer ce dataset ?')) {
+deleteDataset(datasetId: number) {
+    const dataset = this.datasets.find(d => d.dataset_id === datasetId);
+    if (!dataset) return;
+
+    this.confirmDeleteComponent.itemName = dataset.name;
+    this.confirmDeleteComponent.itemType = 'dataset';
+    this.confirmDeleteComponent.question = 'Are you sure you want to delete the dataset "{{ itemName }}"?';
+    this.confirmDeleteComponent.message = 'This will permanently delete the dataset and all associated classes, concepts, and checkpoints.';
+    this.confirmDeleteComponent.visible = true;
+
+    this.pendingDelete = () => {
       this.adminService.deleteDataset(datasetId).subscribe({
-        next: () => this.loadAllData(),
-        error: (err) => console.error(' Erreur suppression dataset:', err)
+        next: () => {
+          this.loadAllData();
+          //console.log(` Dataset "${dataset.name}" deleted`);
+        },
+        error: (err) => {}/*console.error(' Error deleting dataset:', err)*/
       });
-    }
+    };
   }
+
   
   addCheckpoint() {
     if (this.checkpointForm.invalid) return;
     this.adminService.createCheckpoint(this.checkpointForm.value).subscribe({
       next: () => { this.loadAllData(); this.checkpointForm.reset(); this.showAddForm = false; },
-      error: (err) => console.error(' Erreur création checkpoint:', err)
+      error: (err) => {}/*console.error(' Erreur création checkpoint:', err)*/
     });
   }
   
@@ -340,17 +381,29 @@ export class AdminComponent implements OnInit {
     if (this.checkpointForm.invalid || !this.editingId) return;
     this.adminService.updateCheckpoint(this.editingId, this.checkpointForm.value).subscribe({
       next: () => { this.loadAllData(); this.checkpointForm.reset(); this.showEditForm = false; this.editingId = null; },
-      error: (err) => console.error(' Erreur mise à jour checkpoint:', err)
+      error: (err) => {}/*console.error(' Erreur mise à jour checkpoint:', err)*/
     });
   }
   
-  deleteCheckpoint(checkpointId: number) {
-    if (confirm('Supprimer ce checkpoint ?')) {
+   deleteCheckpoint(checkpointId: number) {
+    const checkpoint = this.checkpoints.find(cp => cp.checkpoint_id === checkpointId);
+    if (!checkpoint) return;
+
+    
+    this.confirmDeleteComponent.itemType = 'checkpoint';
+    this.confirmDeleteComponent.question = 'Are you sure you want to delete this checkpoint ?';
+    this.confirmDeleteComponent.message = ' This will permanently delete the checkpoint.';
+    this.confirmDeleteComponent.visible = true;
+
+    this.pendingDelete = () => {
       this.adminService.deleteCheckpoint(checkpointId).subscribe({
-        next: () => this.loadAllData(),
-        error: (err) => console.error(' Erreur suppression checkpoint:', err)
+        next: () => {
+          this.loadAllData();
+          /*console.log(` Checkpoint ${checkpointId} deleted`);*/
+        },
+        error: (err) => {}/*console.error(' Error deleting checkpoint:', err)*/
       });
-    }
+    };
   }
   
   getModelName(modelId: number): string {
@@ -372,4 +425,74 @@ export class AdminComponent implements OnInit {
     const icons: Record<string, string> = { fast: '⚡', medium: '📊', slow: '🐢' };
     return icons[speed] || '📊';
   }
+openDatasetDetails(dataset: any) {
+  if (dataset.classes && dataset.classes.length > 0 && 
+      dataset.concepts && dataset.concepts.length > 0) {
+    this.selectedDatasetDetails = {
+      ...dataset,
+      classes: dataset.classes || [],
+      concepts: dataset.concepts || []
+    };
+    return;
+  }
+  this.isLoadingDetails = true;
+  this.selectedDatasetDetails = {
+    ...dataset,
+    classes: [],
+    concepts: [],
+    loading: true
+  };
+  this.adminService.getDatasetClasses(dataset.dataset_id!).subscribe({
+    next: (classes) => {
+      this.selectedDatasetDetails = {
+        ...this.selectedDatasetDetails,
+        classes: classes || [],
+        loading: false
+      };
+      //console.log(` ${classes.length} classes chargées pour ${dataset.name}`);
+    },
+    error: (err) => {
+      //console.error(' Erreur chargement classes:', err);
+      this.selectedDatasetDetails = {
+        ...this.selectedDatasetDetails,
+        classes: [],
+        loading: false
+      };
+    }
+  });
+  this.adminService.getDatasetConcepts(dataset.dataset_id!).subscribe({
+    next: (concepts) => {
+      this.selectedDatasetDetails = {
+        ...this.selectedDatasetDetails,
+        concepts: concepts || [],
+        loading: false
+      };
+      //console.log(` ${concepts.length} concepts chargés pour ${dataset.name}`);
+    },
+    error: (err) => {
+      //console.error(' Erreur chargement concepts:', err);
+      this.selectedDatasetDetails = {
+        ...this.selectedDatasetDetails,
+        concepts: [],
+        loading: false
+      };
+    }
+  });
+}
+
+  closeDatasetDetails() {
+    this.selectedDatasetDetails = null;
+  }
+  onDeleteConfirmed() {
+    if (this.pendingDelete) {
+      this.pendingDelete();
+      this.pendingDelete = null;
+    }
+  }
+
+  onDeleteCanceled() {
+    this.pendingDelete = null;
+  }
+
+
 }

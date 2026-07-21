@@ -43,11 +43,11 @@ class ModelManager:
         
         model = db.query(Model).filter(Model.hugging_face_id == encoder).first()
         if not model:
-            raise ValueError(f"Modèle non trouvé: {encoder}")
+            raise ValueError(f"Model not found: {encoder}")
         
         dataset_obj = db.query(Dataset).filter(Dataset.name.ilike(dataset)).first()
         if not dataset_obj:
-            raise ValueError(f"Dataset non trouvé: {dataset}")
+            raise ValueError(f"Dataset not found: {dataset}")
         
         checkpoint = db.query(ModelDatasetCheckpoint).filter(
             ModelDatasetCheckpoint.model_id == model.model_id,
@@ -57,10 +57,10 @@ class ModelManager:
         
         if not checkpoint:
             raise ValueError(
-                f"Pas de checkpoint pour ({encoder}, {dataset}, n_heads={n_heads})"
+                f"No checkpoint found for ({encoder}, {dataset}, n_heads={n_heads})"
             )
         
-        print(f"Chargement du checkpoint: {checkpoint.repo_id}")
+        print(f"Loading checkpoint: {checkpoint.repo_id}")
         
         local_path = hf_hub_download(
             repo_id=checkpoint.repo_id,
@@ -118,7 +118,7 @@ class ModelManager:
         return self._encoders[encoder_hf_id]
 
     def _load_encoder(self, encoder_hf_id: str):
-        print(f"Chargement de l'encodeur: {encoder_hf_id}")
+        print(f"Loading encoder: {encoder_hf_id}")
 
         model_info = MODEL_REGISTRY.get(encoder_hf_id, {})
         encoder_type = model_info.get("type", "encoder")
@@ -138,7 +138,7 @@ class ModelManager:
             tok = AutoTokenizer.from_pretrained(encoder_hf_id, use_fast=False)
             print("  DeBERTa-v3: slow tokenizer loaded")
 
-        print(f"Encodeur chargé: {encoder_hf_id} ({mtype}, hidden={hidden_size})")
+        print(f"Encoder loaded: {encoder_hf_id} ({mtype}, hidden={hidden_size})")
         return enc, tok, hidden_size, mtype
 
     def get_model_type(self, encoder_hf_id: str) -> str:

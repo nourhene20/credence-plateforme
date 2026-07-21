@@ -12,6 +12,7 @@ import { HttpClientModule } from '@angular/common/http';
 import { HistoryComponent } from './components/history/history.component';
 import { AdminComponent } from './components/admin/admin.component';
 import { HeaderComponent } from './components/header/header.component';
+import { ConfirmDeleteComponent } from './components/confirm-delete/confirm-delete.component';
 
 
 @NgModule({
@@ -20,7 +21,8 @@ import { HeaderComponent } from './components/header/header.component';
     TextSubmissionInterfaceComponent,
     HistoryComponent,
     AdminComponent,
-    HeaderComponent
+    HeaderComponent,
+    ConfirmDeleteComponent
   ],
   imports: [
     BrowserModule,

@@ -2,39 +2,12 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import {ModelInfo,TaskInfo,DatasetInfo} from '../shared/models_interfaces';
 
-export interface ModelInfo {
-  name: string;
-  description: string;
-  params: string;
-  speed: string;
-  type: 'encoder' | 'llm';
-  model_id?: number;
-  hugging_face_id?: string;
-}
-
-export interface DatasetInfo {
-  name: string;
-  description: string;
-  icon: string;
-  task: string;
-  num_classes: number;
-  class_names: string[];
-  has_concepts: boolean;
-  concept_names: string[];
-  task_id?: number;
-  dataset_id?: number;
-}
-
-export interface TaskInfo {
-  name: string;
-  icon: string;
-  task_id?: number;
-}
 
 @Injectable({ providedIn: 'root' })
 export class ConfigService {
-  private apiUrl = environment.apiUrl;
+  /*private apiUrl = environment.apiUrl;
   private config: any = null;
 
   constructor(private http: HttpClient) {}
@@ -101,5 +74,5 @@ export class ConfigService {
     console.error(' Erreur chargement heads:', error);
     return [];
   }
-}
+}*/
 }

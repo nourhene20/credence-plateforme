@@ -18,13 +18,12 @@
             </button>
         </div>
 
-        <!-- ─── TASKS ────────────────────────────────────────────────── -->
         <div class="tab-content" *ngIf="activeTab === 'tasks'">
             <div class="tab-header">
                 <h2>📋 Manage Tasks</h2>
-                <button class="btn-add" (click)="openAddForm()">
-                    {{ showAddForm ? '✕ Close' : '➕ Add' }}
-                </button>
+                    <button class="btn-add" (click)="openAddForm()" *ngIf="!showAddForm && !showEditForm">
+        ➕ Add
+    </button>
             </div>
 
             <div class="form-panel" *ngIf="showAddForm || showEditForm">
@@ -75,7 +74,7 @@
                 <table class="admin-table">
                     <thead>
                         <tr>
-                            <th style="width:60px">ID</th>
+                           
                             <th style="width:60px">Icon</th>
                             <th>Name</th>
                             <th style="width:120px">Actions</th>
@@ -83,13 +82,12 @@
                     </thead>
                     <tbody>
                         <tr *ngFor="let task of tasks">
-                            <td>{{ task.task_id }}</td>
+                        
                             <td class="icon-cell">{{ task.icon }}</td>
                             <td><strong>{{ task.name }}</strong></td>
                             <td>
                                 <button class="btn-edit" (click)="editTask(task)" title="Edit">✏️</button>
-                                <button class="btn-delete" (click)="deleteTask(task.task_id!)"
-                                    title="Delete">🗑️</button>
+                                <button class="btn-delete" (click)="deleteTask(task.task_id!)" title="Delete">🗑️</button>
                             </td>
                         </tr>
                         <tr *ngIf="tasks.length === 0">
@@ -99,14 +97,12 @@
                 </table>
             </div>
         </div>
-
-        <!-- ─── MODELS ────────────────────────────────────────────────── -->
         <div class="tab-content" *ngIf="activeTab === 'models'">
             <div class="tab-header">
                 <h2>🤖 Manage Models</h2>
-                <button class="btn-add" (click)="openAddForm()">
-                    {{ showAddForm ? '✕ Close' : '➕ Add' }}
-                </button>
+                <button class="btn-add" (click)="openAddForm()" *ngIf="!showAddForm && !showEditForm">
+        ➕ Add
+    </button>
             </div>
 
             <div class="form-panel" *ngIf="showAddForm || showEditForm">
@@ -164,7 +160,6 @@
                 <table class="admin-table">
                     <thead>
                         <tr>
-                            <th style="width:50px">ID</th>
                             <th>Name</th>
                             <th style="width:90px">Type</th>
                             <th style="width:80px">Params</th>
@@ -174,7 +169,6 @@
                     </thead>
                     <tbody>
                         <tr *ngFor="let model of models">
-                            <td>{{ model.model_id }}</td>
                             <td><strong>{{ model.name }}</strong></td>
                             <td>
                                 <span class="badge-type" [class.encoder]="model.type === 'encoder'">
@@ -185,8 +179,7 @@
                             <td><code>{{ model.hugging_face_id }}</code></td>
                             <td>
                                 <button class="btn-edit" (click)="editModel(model)" title="Edit">✏️</button>
-                                <button class="btn-delete" (click)="deleteModel(model.model_id!)"
-                                    title="Delete">🗑️</button>
+                                <button class="btn-delete" (click)="deleteModel(model.model_id!)" title="Delete">🗑️</button>
                             </td>
                         </tr>
                         <tr *ngIf="models.length === 0">
@@ -201,9 +194,9 @@
         <div class="tab-content" *ngIf="activeTab === 'datasets'">
             <div class="tab-header">
                 <h2>📊 Manage Datasets</h2>
-                <button class="btn-add" (click)="openAddForm()">
-                    {{ showAddForm ? '✕ Close' : '➕ Add' }}
-                </button>
+                <button class="btn-add" (click)="openAddForm()" *ngIf="!showAddForm && !showEditForm">
+        ➕ Add
+    </button>
             </div>
 
             <div class="form-panel" *ngIf="showAddForm || showEditForm">
@@ -320,7 +313,6 @@
                 <table class="admin-table">
                     <thead>
                         <tr>
-                            <th style="width:50px">ID</th>
                             <th style="width:50px">Icon</th>
                             <th>Name</th>
                             <th>Description</th>
@@ -331,7 +323,7 @@
                     </thead>
                     <tbody>
                         <tr *ngFor="let dataset of datasets">
-                            <td>{{ dataset.dataset_id }}</td>
+                            
                             <td class="icon-cell">{{ dataset.icon }}</td>
                             <td><strong>{{ dataset.name }}</strong></td>
                             <td class="desc-cell">{{ dataset.description | slice:0:50 }}{{ dataset.description.length >
@@ -340,8 +332,8 @@
                             <td>{{ getTaskName(dataset.task_id) }}</td>
                             <td>
                                 <button class="btn-edit" (click)="editDataset(dataset)" title="Edit">✏️</button>
-                                <button class="btn-delete" (click)="deleteDataset(dataset.dataset_id!)"
-                                    title="Delete">🗑️</button>
+                                <button class="btn-details" (click)="openDatasetDetails(dataset)" title="View Details">📋</button>
+                                <button class="btn-delete" (click)="deleteDataset(dataset.dataset_id!)" title="Delete">🗑️</button>
                             </td>
                         </tr>
                         <tr *ngIf="datasets.length === 0">
@@ -353,13 +345,97 @@
 
         </div>
 
+        <!-- ─── MODALE DE DÉTAILS ──────────────────────────────────────── -->
+        <div class="modal-overlay" *ngIf="selectedDatasetDetails" (click)="closeDatasetDetails()">
+            <div class="modal-content" (click)="$event.stopPropagation()">
+                <div class="modal-header">
+                    <h3>{{ selectedDatasetDetails.icon }} {{ selectedDatasetDetails.name }}</h3>
+                    <button class="modal-close" (click)="closeDatasetDetails()">✕</button>
+                </div>
+                
+                <div class="modal-body">
+                    <!-- Loading state -->
+                    <div *ngIf="selectedDatasetDetails.loading" class="loading-state">
+                        <div class="spinner"></div>
+                        <p>Loading details...</p>
+                    </div>
+
+                    <!-- Description -->
+                    <div class="detail-section" *ngIf="!selectedDatasetDetails.loading">
+                        <h4>📝 Description</h4>
+                        <p>{{ selectedDatasetDetails.description }}</p>
+                    </div>
+
+                    <!-- Informations générales -->
+                    <div class="detail-section" *ngIf="!selectedDatasetDetails.loading">
+                        <h4>ℹ️ Information</h4>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <span class="info-label">ID :</span>
+                                <span class="info-value">{{ selectedDatasetDetails.dataset_id }}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Task :</span>
+                                <span class="info-value">{{ getTaskName(selectedDatasetDetails.task_id) }}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Number of classes :</span>
+                                <span class="info-value">{{ selectedDatasetDetails.num_classes }}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Has concepts :</span>
+                                <span class="info-value">{{ selectedDatasetDetails.has_concepts ? '✅ Yes' : '❌ No' }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Classes -->
+                    <div class="detail-section" *ngIf="!selectedDatasetDetails.loading">
+                        <h4>🏷️ Classes</h4>
+                        <div *ngIf="selectedDatasetDetails.classes && selectedDatasetDetails.classes.length > 0; else noClasses">
+                            <div class="badge-container">
+                                <span *ngFor="let cls of selectedDatasetDetails.classes" class="badge-class">
+                                    <span class="badge-index">#{{ cls.label_index }}</span>
+                                    {{ cls.label_name }}
+                                </span>
+                            </div>
+                        </div>
+                        <ng-template #noClasses>
+                            <p class="text-muted">No classes defined</p>
+                        </ng-template>
+                    </div>
+
+                    <!-- Concepts -->
+                    <div class="detail-section" *ngIf="!selectedDatasetDetails.loading && selectedDatasetDetails.has_concepts">
+                        <h4>🧠 Concepts</h4>
+                        <div *ngIf="selectedDatasetDetails.concepts && selectedDatasetDetails.concepts.length > 0; else noConcepts">
+                            <div class="badge-container">
+                                <span *ngFor="let concept of selectedDatasetDetails.concepts" class="badge-concept">
+                                    <span class="badge-index">#{{ concept.concept_index }}</span>
+                                    {{ concept.concept_name }}
+                                </span>
+                            </div>
+                        </div>
+                        <ng-template #noConcepts>
+                            <p class="text-muted">No concepts defined</p>
+                        </ng-template>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button class="btn-edit" (click)="editDataset(selectedDatasetDetails); closeDatasetDetails()">✏️ Edit</button>
+                    <button class="btn-close" (click)="closeDatasetDetails()">Close</button>
+                </div>
+            </div>
+        </div>
+
         <!-- ─── CHECKPOINTS ────────────────────────────────────────────── -->
         <div class="tab-content" *ngIf="activeTab === 'checkpoints'">
             <div class="tab-header">
                 <h2>🔗 Manage Checkpoints</h2>
-                <button class="btn-add" (click)="openAddForm()">
-                    {{ showAddForm ? '✕ Close' : '➕ Add' }}
-                </button>
+                <button class="btn-add" (click)="openAddForm()" *ngIf="!showAddForm && !showEditForm">
+        ➕ Add
+    </button>
             </div>
 
             <div class="form-panel" *ngIf="showAddForm || showEditForm">
@@ -406,7 +482,6 @@
                 <table class="admin-table">
                     <thead>
                         <tr>
-                            <th style="width:50px">ID</th>
                             <th>Model</th>
                             <th>Dataset</th>
                             <th style="width:80px">Heads</th>
@@ -416,15 +491,13 @@
                     </thead>
                     <tbody>
                         <tr *ngFor="let checkpoint of checkpoints">
-                            <td>{{ checkpoint.checkpoint_id }}</td>
                             <td>{{ getModelName(checkpoint.model_id) }}</td>
                             <td>{{ getDatasetName(checkpoint.dataset_id) }}</td>
                             <td><span class="head-badge">{{ checkpoint.n_heads }}</span></td>
                             <td><code>{{ checkpoint.repo_id }}</code></td>
                             <td>
                                 <button class="btn-edit" (click)="editCheckpoint(checkpoint)" title="Edit">✏️</button>
-                                <button class="btn-delete" (click)="deleteCheckpoint(checkpoint.checkpoint_id!)"
-                                    title="Delete">🗑️</button>
+                                <button class="btn-delete" (click)="deleteCheckpoint(checkpoint.checkpoint_id!)" title="Delete">🗑️</button>
                             </td>
                         </tr>
                         <tr *ngIf="checkpoints.length === 0">
@@ -434,6 +507,10 @@
                 </table>
             </div>
         </div>
-
+     <app-confirm-delete #confirmDelete
+    (confirm)="onDeleteConfirmed()"
+    (cancel)="onDeleteCanceled()">
+</app-confirm-delete>
     </div>
+    
 </div>

@@ -2,26 +2,8 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { PredictionResult } from '../shared/models_interfaces';
 
-export interface PredictionResult {
-  prediction: string;
-  confidence: number;
-  epistemic: number;
-  aleatoric: number;
-  
-  
-  aleatoric_by_concept?: { food: number; service: number; ambiance: number; noise: number; };
-  concepts?: Record<string, number>;
-  concept_uncertainties?: Record<string, number>;
-  heads_predictions?: Record<string, Record<string, number>>;
-  
-  
-  probabilities?: {
-    entailment: number;
-    neutral: number;
-    contradiction: number;
-  };
-}
 
 @Injectable({ providedIn: 'root' })
 export class CredenceService {

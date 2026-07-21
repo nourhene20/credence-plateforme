@@ -1,11 +1,11 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { HistoryService, HistoryItem, HistoryStats } from '../../services/history.service';
-
+import { HistoryService } from '../../services/history.service';
+import{HistoryItem,HistoryStats} from '../../shared/models_interfaces';
 export interface HistoryFilter {
   searchText: string;
   routingDecision: string;
-  dateFrom: Date | null;
-  dateTo: Date | null;
+  dateFrom: string| null;
+  dateTo: string | null;
   model: string;
   dataset: string;
 }
@@ -75,12 +75,22 @@ export class HistoryComponent implements OnInit {
         this.stats = stats;
       },
       error: (err) => {
-        console.error(' Erreur chargement statistiques:', err);
+        //console.error(' Erreur chargement statistiques:', err);
       }
     });
   }
 
   loadData() {
+    if (this.filters.dateFrom && this.filters.dateTo) {
+    const from = new Date(this.filters.dateFrom);
+    const to = new Date(this.filters.dateTo);
+    
+    if (from > to) {
+      const temp = this.filters.dateFrom;
+      this.filters.dateFrom = this.filters.dateTo;
+      this.filters.dateTo = temp;
+    }
+  }
     this.isLoading = true;
     
     const params: any = {
@@ -101,10 +111,12 @@ export class HistoryComponent implements OnInit {
       params.dataset = this.filters.dataset;
     }
     if (this.filters.dateFrom) {
-      params.date_from = this.filters.dateFrom.toISOString();
+      params.date_from = new Date(this.filters.dateFrom).toISOString();
     }
     if (this.filters.dateTo) {
-      params.date_to = this.filters.dateTo.toISOString();
+      const end = new Date(this.filters.dateTo);
+  end.setHours(23, 59, 59, 999);
+  params.date_to = end.toISOString();
     }
     
     this.historyService.getHistory(params).subscribe({
@@ -117,7 +129,7 @@ export class HistoryComponent implements OnInit {
         this.loadFilterOptions();
       },
       error: (err) => {
-        console.error(' Erreur chargement historique:', err);
+        //console.error(' Erreur chargement historique:', err);
         this.historyData = [];
         this.totalItems = 0;
         this.isLoading = false;

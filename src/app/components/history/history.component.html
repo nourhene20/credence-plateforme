@@ -94,7 +94,15 @@
           </select>
         </div>
       </div>
-
+<div class="filters-row date-filters">
+        <div class="filter-group">
+          <label>From</label>
+          <input type="date" [(ngModel)]="filters.dateFrom" (change)="applyFilters()" class="filter-input" />
+        </div>
+        <div class="filter-group">
+          <label>To</label>
+          <input type="date" [(ngModel)]="filters.dateTo" (change)="applyFilters()" class="filter-input" />
+        </div>
       <div class="filters-row">
         <button class="btn-reset" (click)="resetFilters()">🔄 Reset</button>
       </div>
@@ -107,7 +115,6 @@
             <th style="width:40px">
               <input type="checkbox" [checked]="selectAll" (change)="toggleSelectAll()" />
             </th>
-            <th style="width:60px" (click)="toggleSort('analyse_id')"># ↕</th>
             <th>Text</th>
             <th style="width:120px" (click)="toggleSort('prediction_label')">Prediction ↕</th>
             <th style="width:100px" (click)="toggleSort('confidence')">Confidence ↕</th>
@@ -123,7 +130,6 @@
               <input type="checkbox" [checked]="selectedItems.has(item.analyse_id)" 
                      (change)="toggleSelect(item.analyse_id)" />
             </td>
-            <td>{{ item.analyse_id }}</td>
             <td class="text-cell">
               <div class="text-preview">{{ item.input_text | slice:0:80 }}{{ item.input_text.length > 80 ? '...' : '' }}</div>
             </td>

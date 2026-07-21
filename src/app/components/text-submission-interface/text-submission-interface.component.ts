@@ -3,16 +3,13 @@ import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { Chart, registerables } from 'chart.js';
 import {
-  CredenceService,
-  PredictionResult,
+  CredenceService
 } from '../../services/credence.service';
-import {
-  ConfigService,
-  ModelInfo,
+import {  ModelInfo,
   DatasetInfo,
-  TaskInfo,
-} from '../../services/config.service';
+  TaskInfo,PredictionResult} from '../../shared/models_interfaces';
 import { environment } from 'environments/environment';
+import { AdminService } from 'src/app/services/admin.service';
 
 Chart.register(...registerables);
 
@@ -90,18 +87,14 @@ export class TextSubmissionInterfaceComponent
   constructor(
     private credenceService: CredenceService,
     private router: Router,
-    private configService: ConfigService,
+   private adminService:AdminService,
     private http: HttpClient,
   ) {}
 
-  /*Initializes component, loads configuration */
 
   ngOnInit() {
     this.loadConfig();
   }
-
-  /*Initializes charts after view is rendered */
-
   ngAfterViewInit() {
     setTimeout(() => {
       if (this.scatterPoints.length > 0) {
@@ -109,8 +102,6 @@ export class TextSubmissionInterfaceComponent
       }
     }, 500);
   }
-
-  /*Cleans up chart instances to prevent memory leaks */
 
   ngOnDestroy() {
     if (this.scatterChart) {
@@ -139,29 +130,28 @@ export class TextSubmissionInterfaceComponent
     }
   }
 
-  /* Loads models, datasets and tasks from config service */
   async loadConfig() {
   try {
-    await this.configService.loadConfig();
+    await this.adminService.loadConfig();
     
-    const allModels = this.configService.getModelList();
+    const allModels = this.adminService.getModelList();
     this.encoderModels = allModels.filter((m) => m.info.type === 'encoder');
     this.llmModels = allModels.filter((m) => m.info.type === 'llm');
     this.filteredModels = [...this.encoderModels];
     this.selectedModel = this.filteredModels[0]?.key || '';
     
-    this.datasets = this.configService.getDatasetList();
+    this.datasets = this.adminService.getDatasetList();
     this.filteredDatasets = [...this.datasets];
     this.selectedDataset = this.datasets[0]?.key || '';
     
-    this.tasksList = this.configService.getTaskList();
+    this.tasksList = this.adminService.getTaskList();
     
     this.buildDatasetGroups();
     this.updateCurrentModelInfo();
     this.updateCurrentDatasetInfo();
     await this.loadAvailableHeads();  
-    console.log(' Configuration chargée avec succès !');
-    console.log(` ${this.encoderModels.length} encoders, ${this.llmModels.length} LLMs, ${this.datasets.length} datasets`);
+    //console.log(' Configuration chargée avec succès !');
+    //console.log(` ${this.encoderModels.length} encoders, ${this.llmModels.length} LLMs, ${this.datasets.length} datasets`);
   } catch (error) {
     console.error(' Erreur chargement configuration:', error);
     this.encoderModels = [];
@@ -170,8 +160,7 @@ export class TextSubmissionInterfaceComponent
     this.tasksList = [];
   }
 }
-  /* Switches between Encoder and LLM model types */
-
+  
  setModelType(type: 'encoder' | 'llm') {
   this.modelType = type;
   this.filteredModels = type === 'encoder' ? [...this.encoderModels] : [...this.llmModels];
@@ -182,20 +171,17 @@ export class TextSubmissionInterfaceComponent
   this.loadAvailableHeads();  
 }
 
-  /* Updates current model info when selection changes */
   onModelChange() {
   this.updateCurrentModelInfo();
-  console.log('Modèle sélectionné:', this.selectedModel);
-  this.loadAvailableHeads();  // ← Charger heads dynamiquement
+  //console.log('Modèle sélectionné:', this.selectedModel);
+  this.loadAvailableHeads(); 
 }
 
-  /* Updates displayed model information */
 
   updateCurrentModelInfo() {
-    this.currentModelInfo = this.configService.getModel(this.selectedModel);
+    this.currentModelInfo = this.adminService.getModel(this.selectedModel);
   }
 
-  /* Checks if the current result contains concept-level information */
   hasConcepts(): boolean {
     return !!(
       this.result &&
@@ -203,8 +189,6 @@ export class TextSubmissionInterfaceComponent
       Object.keys(this.result.concepts).length > 0
     );
   }
-
-  /* Returns emoji icon for selected model */
 
   getModelIcon(modelKey: string): string {
     const icons: Record<string, string> = {
@@ -220,78 +204,124 @@ export class TextSubmissionInterfaceComponent
     return icons[modelKey] || (this.modelType === 'encoder' ? '📦' : '🤖');
   }
 
-  /* Toggles detailed model information panel */
 
   toggleModelDetails() {
     this.showModelDetails = !this.showModelDetails;
   }
 
-  /* Builds grouped dataset options by task */
 
-  buildDatasetGroups() {
-    const groups: Map<string, { key: string; info: DatasetInfo }[]> = new Map();
+buildDatasetGroups() {
+  const groups: Map<string, { key: string; info: DatasetInfo }[]> = new Map();
+  const datasetsToGroup = this.filteredDatasets.length > 0 ? this.filteredDatasets : this.datasets;
 
-    const datasetsToGroup =
-      this.filteredDatasets.length > 0 ? this.filteredDatasets : this.datasets;
-
-    for (const dataset of datasetsToGroup) {
-      const task = dataset.info.task;
-      if (!groups.has(task)) {
-        groups.set(task, []);
-      }
-      groups.get(task)!.push(dataset);
+  for (const dataset of datasetsToGroup) {
+    const task = dataset.info.task;
+    if (!groups.has(task)) {
+      groups.set(task, []);
     }
-
-    const taskLabels: Record<string, string> = {
-      sentiment: '📊 Sentiment Analysis',
-      toxicity: '⚠️ Toxicity Detection',
-      emotion: '😊 Emotion Detection',
-      nli: '🔍 Natural Language Inference',
-    };
-
-    this.datasetGroups = Array.from(groups.entries()).map(
-      ([task, datasets]) => ({
-        label: taskLabels[task] || task,
-        datasets,
-      }),
-    );
+    groups.get(task)!.push(dataset);
   }
+  const taskLabelMap = new Map<string, string>();
+  this.tasksList.forEach(task => {
+    taskLabelMap.set(task.key, `${task.info.icon} ${task.info.name}`);
+  });
 
-  /* Handles dataset selection change */
+  this.datasetGroups = Array.from(groups.entries()).map(([task, datasets]) => ({
+    label: taskLabelMap.get(task) || task, 
+    datasets,
+  }));
+}
 
 onDatasetChange() {
   this.updateCurrentDatasetInfo();  
-  console.log('Dataset sélectionné:', this.selectedDataset);
+  //console.log('Dataset sélectionné:', this.selectedDataset);
   this.loadAvailableHeads();
 }
 
-  /* Updates current dataset information */
 
   updateCurrentDatasetInfo() {
-    this.currentDatasetInfo = this.configService.getDataset(
+    this.currentDatasetInfo = this.adminService.getDataset(
       this.selectedDataset,
     );
   }
 
-  /* Filters datasets by selected task */
 
-  filterDatasetsByTask(taskKey: string) {
-    this.selectedTask = taskKey;
-    if (taskKey === 'all') {
-      this.filteredDatasets = [...this.datasets];
+async filterDatasetsByTask(taskKey: string) {
+  this.selectedTask = taskKey;
+  
+  if (taskKey === 'all') {
+    this.filteredDatasets = [...this.datasets];
+    this.buildDatasetGroups();
+    this.updateSelection();
+    await this.loadAvailableHeads();
+    return;
+  }
+  
+  if (!this.tasksList || this.tasksList.length === 0) {
+    //console.error('Liste des tâches non chargée');
+    this.filteredDatasets = [];
+    this.buildDatasetGroups();
+    return;
+  }
+  
+  try {
+    const task = this.tasksList.find(t => t.key === taskKey);
+    
+    if (!task) {
+      //console.error(`Tâche "${taskKey}" non trouvée dans la liste`);
+      //console.log('Tâches disponibles:', this.tasksList.map(t => t.key));
+      this.filteredDatasets = [];
+      this.buildDatasetGroups();
+      return;
+    }
+    const taskId = task.info.task_id;
+    if (!taskId) {
+      //console.error(`❌ La tâche "${taskKey}" n'a pas d'ID`);
+      this.filteredDatasets = [];
+      this.buildDatasetGroups();
+      return;
+    }
+    //console.log(`🔍 Chargement des datasets pour "${taskKey}" (task_id: ${taskId})...`);
+    const response = await this.adminService.getDatasetsByTask(taskId).toPromise();
+    
+    if (response && response.datasets) {
+      this.filteredDatasets = Object.entries(response.datasets).map(([key, info]: [string, any]) => ({
+        key,
+        info: {
+          ...info,
+          task: taskKey,
+          task_id: taskId
+        }
+      }));
+      //console.log(`${this.filteredDatasets.length} datasets chargés`);
     } else {
-      this.filteredDatasets = this.datasets.filter(
-        (d) => d.info.task === taskKey,
-      );
+      //console.warn(`Aucun dataset pour la tâche "${taskKey}"`);
+      this.filteredDatasets = [];
     }
     this.buildDatasetGroups();
-    if (!this.filteredDatasets.find((d) => d.key === this.selectedDataset)) {
-      this.selectedDataset = this.filteredDatasets[0]?.key || '';
-      this.updateCurrentDatasetInfo();
-    }
+    this.updateSelection();
+    await this.loadAvailableHeads();
+    
+  } catch (error) {
+    //console.error('Erreur chargement datasets:', error);
+    this.filteredDatasets = [];
+    this.buildDatasetGroups();
   }
+}
 
-  /* Resets the dataset filter to show all */
+private updateSelection() {
+  if (this.filteredDatasets.length > 0) {
+    this.selectedDataset = this.filteredDatasets[0]?.key || '';
+    this.updateCurrentDatasetInfo();
+  } else {
+    this.selectedDataset = '';
+    this.currentDatasetInfo = null;
+    this.availableHeads = [];
+    this.noCheckpointAvailable = true;
+  }
+}
+
+  
 
   resetFilter() {
     this.selectedTask = 'all';
@@ -299,13 +329,11 @@ onDatasetChange() {
     this.buildDatasetGroups();
   }
 
-  /* Toggles detailed dataset information panel */
 
   toggleDatasetDetails() {
     this.showDatasetDetails = !this.showDatasetDetails;
   }
 
-  /* Returns color for task filter buttons */
 
   getTaskColor(task: string): string {
     const colors: Record<string, string> = {
@@ -319,8 +347,6 @@ onDatasetChange() {
 
 
 
-  /* Switches between single and batch analysis mode */
-
   setMode(m: 'single' | 'batch') {
     this.mode = m;
     this.errorMessage = '';
@@ -328,13 +354,11 @@ onDatasetChange() {
     this.result = null;
   }
 
-  /* Updates character count for single text input */
 
   onInput() {
     this.charCount = this.inputText.length;
   }
 
-  /* Resets thresholds to default values */
 
   resetThresholds() {
     this.thresholdEpi = 0.001481;
@@ -344,14 +368,12 @@ onDatasetChange() {
     }
   }
 
-  /* Handles real-time threshold changes */
   onThresholdChange() {
     if (this.scatterPoints.length > 0) {
       this.refreshScatterRouting();
     }
   }
 
-  /* Returns the routing decision based on current thresholds */
 
   get routingDecision(): string {
     if (!this.result) return 'WAITING';
@@ -410,7 +432,6 @@ onDatasetChange() {
       : '#10b981';
   }
 
-  /* Handles drag and drop  event for file upload */
 
   onDragOver(e: DragEvent) {
     e.preventDefault();
@@ -446,7 +467,6 @@ onDatasetChange() {
     }
   }
 
-  /* Checks if analysis can be submitted */
 
   canSubmit(): boolean {
     if (this.isLoading) return false;
@@ -454,55 +474,66 @@ onDatasetChange() {
     return this.selectedFile !== null;
   }
 
-  /* Main method to trigger analysis */
 
-  onSubmit() {
-    if (!this.canSubmit()) return;
-    if (this.selectedDataset === 'tid8') {
-      if (!this.validateTid8Format(this.inputText)) {
-        this.errorMessage =
-          ' Invalid format for TID-8. use premise [SEP] hypothesis\nExample: "A man is playing guitar [SEP] A person is performing music"';
-        this.isLoading = false;
-        return;
-      }
-    }
-    this.isLoading = true;
-    this.errorMessage = '';
-    this.result = null;
+onSubmit() {
+  if (!this.canSubmit()) return;
+  const isNLI = this.currentDatasetInfo?.task === 'nli' || 
+                this.currentDatasetInfo?.task === 'natural_language_inference';
 
-    this.credenceService
-      .predict(
-        this.inputText,
-        this.selectedModel,
-        this.selectedDataset,
-        this.selectedNHeads,
-      )
-      .subscribe({
-        next: (response) => {
-          this.result = response;
-          this.isLoading = false;
-      this.saveAnalyse(response);
-
-          setTimeout(() => this.addPointAndRender(response), 50);
-
-          if (this.selectedDataset === 'tid8') {
-            setTimeout(() => this.renderSnliProbabilities(response), 100);
-            setTimeout(() => this.renderSnliHeadsChart(), 200);
-          } else {
-            setTimeout(() => this.renderConceptHistogram(), 100);
-            setTimeout(() => this.renderEUCurve(), 150);
-            setTimeout(() => this.renderHeadsPerConceptChart(), 150);
-          }
-        },
-        error: (err) => {
-          console.error('API Error:', err);
-          this.errorMessage = 'Error: ' + err.message;
-          this.isLoading = false;
-        },
-      });
+  if (isNLI && !this.validateNLIFormat(this.inputText)) {
+    this.errorMessage = this.getNLIErrorMessage();
+    this.isLoading = false;
+    return;
   }
 
-  /* getter methods */
+  this.isLoading = true;
+  this.errorMessage = '';
+  this.result = null;
+
+  this.credenceService
+    .predict(
+      this.inputText,
+      this.selectedModel,
+      this.selectedDataset,
+      this.selectedNHeads,
+    )
+    .subscribe({
+      next: (response) => {
+        this.result = response;
+        this.isLoading = false;
+        this.saveAnalyse(response);
+
+        setTimeout(() => this.addPointAndRender(response), 50);
+        if (isNLI) {
+          setTimeout(() => this.renderSnliProbabilities(response), 100);
+          setTimeout(() => this.renderSnliHeadsChart(), 200);
+        } else {
+          setTimeout(() => this.renderConceptHistogram(), 100);
+          setTimeout(() => this.renderEUCurve(), 150);
+          setTimeout(() => this.renderHeadsPerConceptChart(), 150);
+        }
+      },
+      error: (err) => {
+        //console.error('API Error:', err);
+        this.errorMessage = 'Error: ' + err.message;
+        this.isLoading = false;
+      },
+    });
+}
+
+validateNLIFormat(text: string): boolean {
+  if (!text.includes('[SEP]')) return false;
+  const parts = text.split('[SEP]');
+  return parts.length >= 2 && 
+         parts[0].trim().length > 0 && 
+         parts[1].trim().length > 0;
+}
+
+getNLIErrorMessage(): string {
+  return `❌ Invalid format for ${this.currentDatasetInfo?.name || 'NLI dataset'}. 
+Use: premise [SEP] hypothesis
+Example: "A man is playing guitar [SEP] A person is performing music"`;
+}
 
   getUncertainty(conceptKey: string): number {
     return this.result?.concept_uncertainties?.[conceptKey] ?? 0;
@@ -524,7 +555,6 @@ onDatasetChange() {
     return '#f472b6';
   }
 
-  /* Computes routing decision for given epistemic and aleatoric values */
 
   private computeRouting(
     eu: number,
@@ -538,7 +568,6 @@ onDatasetChange() {
     return 'ABSTAIN';
   }
 
-  /* Adds a new point to the scatter plot and re-renders it */
 
   addPointAndRender(response: PredictionResult) {
     this.scatterPoints.push({
@@ -552,7 +581,6 @@ onDatasetChange() {
     this.renderScatterChart();
   }
 
-  /* Renders the concept histogram */
 
   renderConceptHistogram() {
     if (!this.result || !this.result.concepts) return;
@@ -609,7 +637,6 @@ onDatasetChange() {
     });
   }
 
-  /* Recomputes routing for all points in the scatter plot based on current thresholds and updates the chart */
 
   refreshScatterRouting() {
     this.scatterPoints = this.scatterPoints.map((p) => ({
@@ -620,14 +647,13 @@ onDatasetChange() {
     this.renderScatterChart();
   }
 
-  /* Updates the counts of points in each routing category based on the current scatter points */
 
   updateRoutingCounts() {
     this.routingCounts = { TRUST: 0, DATA: 0, REVIEW: 0, ABSTAIN: 0 };
     this.scatterPoints.forEach((p) => this.routingCounts[p.routing]++);
   }
 
-  /* Returns the percentage of points in the scatter plot that fall into a given routing category */
+
 
   getRoutingPercentage(decision: string): number {
     if (this.scatterPoints.length === 0) return 0;
@@ -636,7 +662,6 @@ onDatasetChange() {
     return Math.round((count / this.scatterPoints.length) * 100);
   }
 
-  /* Resets the scatter plot by clearing all points, resetting routing counts, and destroying the chart instance */
 
   resetScatter() {
     this.scatterPoints = [];
@@ -647,11 +672,11 @@ onDatasetChange() {
     }
   }
 
-  /* Renders the scatter plot using Chart.js with the current scatter points, including threshold lines and tooltips */
+
   renderScatterChart() {
     const canvas = document.getElementById('scatterChart') as HTMLCanvasElement;
     if (!canvas) {
-      console.error('Canvas scatterChart not found');
+      //console.error('Canvas scatterChart not found');
       return;
     }
     if (this.scatterChart) {
@@ -759,14 +784,13 @@ onDatasetChange() {
       },
     });
 
-    console.log(
+    /*console.log(
       'Scatter chart rendu avec',
       this.scatterPoints.length,
       'points',
-    );
+    );*/
   }
 
-  /* Renders the EU vs Accuracy curve, plotting both the theoretical inverse relationship and the current concepts' values */
 
   renderEUCurve() {
     if (!this.result || !this.result.concepts) return;
@@ -839,7 +863,7 @@ onDatasetChange() {
       },
     });
   }
-  /* Renders a line chart showing the per-head predictions for each concept, with one line per concept */
+
 
   renderHeadsPerConceptChart() {
     if (!this.hasConcepts() || !this.result?.heads_predictions) return;
@@ -927,11 +951,10 @@ onDatasetChange() {
     });
   }
 
-  /* Renders a bar chart showing the predicted probabilities for each NLI class (entailment, neutral, contradiction) for the SNLI dataset */
 
   renderSnliProbabilities(response: PredictionResult) {
     if (!response.probabilities) {
-      console.warn('No probabilities for SNLI');
+      //console.warn('No probabilities for SNLI');
       return;
     }
 
@@ -990,11 +1013,11 @@ onDatasetChange() {
     });
   }
 
-  /* Renders a line chart showing the predictions of each attention head for the SNLI dataset, with one line per head and points for each NLI class */
+
 
   renderSnliHeadsChart() {
     if (!this.result?.heads_predictions) {
-      console.warn('heads_predictions not available for SNLI');
+      //console.warn('heads_predictions not available for SNLI');
       return;
     }
 
@@ -1092,9 +1115,9 @@ onDatasetChange() {
   }
   async loadAvailableHeads() {
   try {
-    console.log(`Recherche des heads disponibles pour ${this.selectedModel} + ${this.selectedDataset}...`);
+    //console.log(`Recherche des heads disponibles pour ${this.selectedModel} + ${this.selectedDataset}...`);
     
-    const heads = await this.configService.getAvailableHeads(
+    const heads = await this.adminService.getAvailableHeads(
       this.selectedModel,
       this.selectedDataset
     );
@@ -1108,10 +1131,10 @@ onDatasetChange() {
       this.selectedNHeads = this.availableHeads[0];
     }
     
-    console.log(` ${this.availableHeads.length} heads disponibles:`, this.availableHeads);
+    //console.log(` ${this.availableHeads.length} heads disponibles:`, this.availableHeads);
     
   } catch (error) {
-    console.error(' Erreur chargement heads:', error);
+   // console.error(' Erreur chargement heads:', error);
     this.availableHeads = [];
     this.noCheckpointAvailable = true;
   }
@@ -1141,10 +1164,10 @@ onDatasetChange() {
   this.http.post(`${environment.apiUrl}/analyse/save`, payload)
     .subscribe({
       next: (result: any) => {
-        console.log(` Analyse sauvegardée (ID: ${result.analyse_id})`);
+        //console.log(` Analyse sauvegardée (ID: ${result.analyse_id})`);
       },
       error: (err: any) => {
-        console.error(' Erreur sauvegarde:', err);
+        //console.error(' Erreur sauvegarde:', err);
       }
     });
 }

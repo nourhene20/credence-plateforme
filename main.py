@@ -11,14 +11,16 @@ from typing import Optional, Dict, List
 from sqlalchemy.orm import Session
 
 from model_manager import manager, DEVICE, get_hidden_states
-from routes_config import router as config_router
+#from routes_config import router as config_router
 from routes_analyse import router as analyse_router
 from routes_admin import router as admin_router
+from routes_data import router as data_router
 from database import get_db
 from models_db import ModelDatasetCheckpoint, Model, Dataset, DatasetClass, DatasetConcept
 
 app = FastAPI(title="CREDENCE API", version="1.0.0")
-app.include_router(config_router)
+#app.include_router(config_router)
+app.include_router(data_router)
 app.include_router(analyse_router)
 app.include_router(admin_router)
 
@@ -34,7 +36,6 @@ app.add_middleware(
 
 
 def get_label_map_from_db(dataset_name: str, db: Session) -> Dict[int, str]:
-    """Récupère les labels d'un dataset depuis la base."""
     dataset = db.query(Dataset).filter(Dataset.name.ilike(dataset_name)).first()
     if not dataset:
         return {}
@@ -47,7 +48,6 @@ def get_label_map_from_db(dataset_name: str, db: Session) -> Dict[int, str]:
 
 
 def get_concept_names_from_db(dataset_name: str, db: Session) -> List[str]:
-    """Récupère les concepts d'un dataset depuis la base."""
     dataset = db.query(Dataset).filter(Dataset.name.ilike(dataset_name)).first()
     if not dataset:
         return []
@@ -62,7 +62,6 @@ def get_concept_names_from_db(dataset_name: str, db: Session) -> List[str]:
 
 
 def format_response(outputs: dict, dataset: str, db: Session) -> dict:
-    """Formate la réponse en utilisant les données de la base."""
     
     label_map = get_label_map_from_db(dataset, db)
     concept_names = get_concept_names_from_db(dataset, db)

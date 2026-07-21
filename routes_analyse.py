@@ -37,8 +37,6 @@ class SaveAnalyseRequest(BaseModel):
 
 @router.post("/save")
 def save_analyse(request: SaveAnalyseRequest, db: Session = Depends(get_db)):
-    """Sauvegarde une analyse et ses résultats."""
-    
     model = db.query(Model).filter(Model.hugging_face_id == request.encoder).first()
     dataset = db.query(Dataset).filter(Dataset.name.ilike(request.dataset)).first()
     
@@ -119,18 +117,16 @@ def save_analyse(request: SaveAnalyseRequest, db: Session = Depends(get_db)):
 
 @router.get("/history")
 def get_history(
-    limit: int = Query(50, description="Nombre de résultats par page"),
-    offset: int = Query(0, description="Décalage pour la pagination"),
-    search: Optional[str] = Query(None, description="Recherche dans le texte"),
-    routing: Optional[str] = Query(None, description="Filtrer par décision de routage"),
-    model: Optional[str] = Query(None, description="Filtrer par modèle"),
-    dataset: Optional[str] = Query(None, description="Filtrer par dataset"),
-    date_from: Optional[datetime] = Query(None, description="Date de début"),
-    date_to: Optional[datetime] = Query(None, description="Date de fin"),
+    limit: int = Query(50, description="Number of results per page"),
+    offset: int = Query(0, description="Pagination offset"),
+    search: Optional[str] = Query(None, description="Search in input text"),
+    routing: Optional[str] = Query(None, description="Filter by routing decision"),
+    model: Optional[str] = Query(None, description="Filter by model"),
+    dataset: Optional[str] = Query(None, description="Filter by dataset"),
+    date_from: Optional[datetime] = Query(None, description="Start date"),
+    date_to: Optional[datetime] = Query(None, description="End date"),
     db: Session = Depends(get_db)
-):
-    """Récupère l'historique des analyses avec filtres."""
-    
+):  
     query = db.query(Analyse)
     
     if search:
@@ -190,8 +186,6 @@ def get_history(
 
 @router.get("/history/stats")
 def get_history_stats(db: Session = Depends(get_db)):
-    """Statistiques agrégées de l'historique."""
-    
     total = db.query(Analyse).count()
     
     trust = db.query(Analyse).filter(Analyse.routing_decision == "TRUST").count()
@@ -215,7 +209,6 @@ def get_history_stats(db: Session = Depends(get_db)):
 
 @router.get("/history/{analyse_id}")
 def get_analyse_detail(analyse_id: int, db: Session = Depends(get_db)):
-    """Récupère le détail complet d'une analyse."""
     analyse = db.query(Analyse).filter(Analyse.analyse_id == analyse_id).first()
     
     if not analyse:
