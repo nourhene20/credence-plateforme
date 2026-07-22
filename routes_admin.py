@@ -85,15 +85,9 @@ def delete_task(task_id: int, db: Session = Depends(get_db)):
     for dataset in datasets:
         db.query(DatasetClass).filter(DatasetClass.dataset_id == dataset.dataset_id).delete()
         db.query(DatasetConcept).filter(DatasetConcept.dataset_id == dataset.dataset_id).delete()
-        
-        checkpoints = db.query(ModelDatasetCheckpoint).filter(
+        db.query(ModelDatasetCheckpoint).filter(
             ModelDatasetCheckpoint.dataset_id == dataset.dataset_id
-        ).all()
-        
-        for checkpoint in checkpoints:
-            db.query(Analyse).filter(Analyse.checkpoint_id == checkpoint.checkpoint_id).delete()
-            db.delete(checkpoint)
-        
+        ).delete()
         db.delete(dataset)
     
     db.delete(db_task)
