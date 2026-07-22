@@ -11,7 +11,6 @@ from typing import Optional, Dict, List
 from sqlalchemy.orm import Session
 
 from model_manager import manager, DEVICE, get_hidden_states
-#from routes_config import router as config_router
 from routes_analyse import router as analyse_router
 from routes_admin import router as admin_router
 from routes_data import router as data_router
@@ -19,10 +18,6 @@ from database import get_db
 from models_db import ModelDatasetCheckpoint, Model, Dataset, DatasetClass, DatasetConcept
 
 app = FastAPI(title="CREDENCE API", version="1.0.0")
-#app.include_router(config_router)
-app.include_router(data_router)
-app.include_router(analyse_router)
-app.include_router(admin_router)
 
 app.add_middleware(
     CORSMiddleware,
@@ -31,6 +26,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.include_router(data_router)
+app.include_router(analyse_router)
+app.include_router(admin_router)
+
+
 
 
 

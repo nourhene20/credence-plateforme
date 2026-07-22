@@ -79,6 +79,23 @@ def delete_task(task_id: int, db: Session = Depends(get_db)):
     db_task = db.query(Task).filter(Task.task_id == task_id).first()
     if not db_task:
         raise HTTPException(status_code=404, detail="Task not found")
+    
+    datasets = db.query(Dataset).filter(Dataset.task_id == task_id).all()
+    
+    for dataset in datasets:
+        db.query(DatasetClass).filter(DatasetClass.dataset_id == dataset.dataset_id).delete()
+        db.query(DatasetConcept).filter(DatasetConcept.dataset_id == dataset.dataset_id).delete()
+        
+        checkpoints = db.query(ModelDatasetCheckpoint).filter(
+            ModelDatasetCheckpoint.dataset_id == dataset.dataset_id
+        ).all()
+        
+        for checkpoint in checkpoints:
+            db.query(Analyse).filter(Analyse.checkpoint_id == checkpoint.checkpoint_id).delete()
+            db.delete(checkpoint)
+        
+        db.delete(dataset)
+    
     db.delete(db_task)
     db.commit()
     return {"message": "Deleted"}
@@ -122,6 +139,11 @@ def delete_model(model_id: int, db: Session = Depends(get_db)):
     db_model = db.query(Model).filter(Model.model_id == model_id).first()
     if not db_model:
         raise HTTPException(status_code=404, detail="Model not found")
+    
+    db.query(ModelDatasetCheckpoint).filter(
+        ModelDatasetCheckpoint.model_id == model_id
+    ).delete()
+    
     db.delete(db_model)
     db.commit()
     return {"message": "Deleted"}
@@ -193,7 +215,10 @@ def delete_dataset(dataset_id: int, db: Session = Depends(get_db)):
     
     db.query(DatasetClass).filter(DatasetClass.dataset_id == dataset_id).delete()
     db.query(DatasetConcept).filter(DatasetConcept.dataset_id == dataset_id).delete()
-    db.query(ModelDatasetCheckpoint).filter(ModelDatasetCheckpoint.dataset_id == dataset_id).delete()
+    db.query(ModelDatasetCheckpoint).filter(
+        ModelDatasetCheckpoint.dataset_id == dataset_id
+    ).delete()
+    
     db.delete(dataset)
     db.commit()
     return {"message": "Deleted"}
